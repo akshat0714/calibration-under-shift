@@ -26,10 +26,12 @@ mkdir -p "$raw_root"
 download() {
   local url="$1"
   local destination="$2"
+  local partial="${destination}.part"
   if [[ ! -f "$destination" ]]; then
     echo "Downloading $(basename "$destination")"
     curl --fail --location --retry 4 --retry-all-errors --continue-at - \
-      --output "$destination" "$url"
+      --output "$partial" "$url"
+    mv "$partial" "$destination"
   fi
 }
 
@@ -99,12 +101,14 @@ download_hushem() {
     mkdir -p "$target_dir/files"
     if command -v unar >/dev/null 2>&1; then
       unar -quiet -output-directory "$target_dir/files" "$archive"
+    elif command -v unrar >/dev/null 2>&1; then
+      unrar x -idq -o+ "$archive" "$target_dir/files/"
     elif command -v 7z >/dev/null 2>&1; then
       7z x -y "-o$target_dir/files" "$archive" >/dev/null
     elif command -v bsdtar >/dev/null 2>&1 && bsdtar -tf "$archive" >/dev/null 2>&1; then
       bsdtar -xf "$archive" -C "$target_dir/files"
     else
-      echo "HuSHeM is a RAR archive. Install 'unar' or 7-Zip, then rerun." >&2
+      echo "HuSHeM is a RAR archive. Install unar, unrar, 7-Zip, or a RAR-capable bsdtar, then rerun." >&2
       exit 1
     fi
     touch "$target_dir/.extracted"

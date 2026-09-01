@@ -11,6 +11,7 @@ import pandas as pd
 import pytest
 import zstandard
 
+import scripts.release_checkpoints as release
 from scripts.release_checkpoints import (
     INTERNAL_MANIFEST_SHA256,
     ReleaseCheckpointError,
@@ -117,6 +118,47 @@ def test_registry_selection_requires_and_orders_exact_matrix(tmp_path):
         select_registry_checkpoints(_config(), registry, tmp_path)
 
 
+def test_prepare_release_matrix_verifies_once_and_returns_16_in_canonical_order(
+    tmp_path, monkeypatch
+):
+    for config in release.CANONICAL_CONFIG_PATHS:
+        path = tmp_path / config
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("fixture: true\n", encoding="utf-8")
+    counts = {
+        "smids_resnet50": 5,
+        "smids_xception": 3,
+        "smids_mobilenetv3": 3,
+        "hushem_resnet50": 5,
+    }
+    expected = [
+        Path(f"results/checkpoints/{config.stem}-{index}.pt")
+        for config in release.CANONICAL_CONFIG_PATHS
+        for index in range(counts[config.stem])
+    ]
+    calls: list[Path] = []
+
+    def fake_ensure(root):
+        calls.append(Path(root))
+        return {release.REGISTRY, *expected}
+
+    monkeypatch.setattr(release, "ensure_release", fake_ensure)
+    monkeypatch.setattr(release, "load_config", lambda path: {"path": Path(path)})
+    monkeypatch.setattr(
+        release,
+        "select_registry_checkpoints",
+        lambda config, registry, root: [
+            Path(f"results/checkpoints/{config['path'].stem}-{index}.pt")
+            for index in range(counts[config["path"].stem])
+        ],
+    )
+
+    observed = release.prepare_release_matrix(tmp_path)
+
+    assert observed == expected
+    assert calls == [tmp_path.resolve()]
+
+
 def test_run_sh_release_mode_uses_canonical_matrix_without_allow_partial(tmp_path):
     repository = Path(__file__).resolve().parents[1]
     fake_python = tmp_path / "python"
@@ -193,3 +235,30 @@ printf '%s\\n' "$*" >> "$FAKE_PYTHON_LOG"
     analysis_call = next(line for line in calls if line.startswith("-m experiments.analyze"))
     assert "--allow-partial" in grid_call
     assert "--allow-partial" in analysis_call
+
+
+def test_run_sh_no_argument_eval_dispatches_complete_release_reproduction(tmp_path):
+    repository = Path(__file__).resolve().parents[1]
+    fake_python = tmp_path / "python"
+    log = tmp_path / "calls.log"
+    fake_python.write_text(
+        """#!/usr/bin/env bash
+printf '%s\\n' "$*" >> "$FAKE_PYTHON_LOG"
+""",
+        encoding="utf-8",
+    )
+    fake_python.chmod(0o755)
+    environment = os.environ.copy()
+    environment.update({"CALIBRATION_PYTHON": str(fake_python), "FAKE_PYTHON_LOG": str(log)})
+
+    completed = subprocess.run(
+        ["bash", "run.sh", "--eval-only"],
+        cwd=repository,
+        env=environment,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert log.read_text(encoding="utf-8").splitlines() == ["-m experiments.reproduce_release"]

@@ -26,6 +26,7 @@ results/demo_figures/
 results/stage2_parts/
 results/eval_*
 results/pilot_*
+results/reproduction/
 *.pt
 *.pth
 *.ckpt

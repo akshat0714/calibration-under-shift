@@ -12,8 +12,10 @@ Usage:
   bash run.sh --audit-kromp
   bash run.sh --train <config.yaml> [extra train_matrix arguments]
   bash run.sh --stage1-clean <mixed-registry.csv> [extra evaluator arguments]
+  bash run.sh --eval-only
   bash run.sh --eval-only <config.yaml> <checkpoint.pt> [checkpoint.pt ...]
   bash run.sh --eval-only <config.yaml> --release-checkpoints
+  bash run.sh --full-retrain [extra full-retrain arguments]
   bash run.sh --full-smids
 
 The demo is a synthetic engineering check, not a scientific result. --full-smids
@@ -129,6 +131,10 @@ case "${1:---help}" in
     ;;
   --eval-only)
     require_environment
+    if [[ "$#" -eq 1 ]]; then
+      "$python_bin" -m experiments.reproduce_release
+      exit 0
+    fi
     if [[ "$#" -lt 3 ]]; then usage >&2; exit 2; fi
     config_path="$2"
     shift 2
@@ -173,6 +179,11 @@ case "${1:---help}" in
       --config "$config_path" --checkpoint "$first_checkpoint" --output-dir "$eval_figures"
     "$python_bin" -m experiments.run_attribution \
       --config "$config_path" --checkpoint "$first_checkpoint" --output-dir "$eval_figures"
+    ;;
+  --full-retrain)
+    require_environment
+    shift
+    "$python_bin" -m experiments.full_retrain "$@"
     ;;
   --full-smids)
     require_environment

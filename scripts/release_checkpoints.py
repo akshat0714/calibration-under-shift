@@ -28,6 +28,12 @@ ARCHIVE_URL = f"https://github.com/{REPOSITORY}/releases/download/{RELEASE_TAG}/
 INTERNAL_MANIFEST = Path("results/stage1_SHA256SUMS")
 INTERNAL_MANIFEST_SHA256 = "5fee4cc901584313cd4559cb808bdb72f19878df4f0ca74f879a4f6c51fb854b"
 REGISTRY = Path("results/checkpoint_registry-stage1.csv")
+CANONICAL_CONFIG_PATHS = (
+    Path("configs/smids_resnet50.yaml"),
+    Path("configs/smids_xception.yaml"),
+    Path("configs/smids_mobilenetv3.yaml"),
+    Path("configs/hushem_resnet50.yaml"),
+)
 
 
 class ReleaseCheckpointError(RuntimeError):
@@ -330,7 +336,9 @@ def select_registry_checkpoints(config: dict[str, Any], registry: Path, root: Pa
     return checkpoints
 
 
-def prepare_release_checkpoints(config_path: Path, root: Path) -> list[Path]:
+def ensure_release(root: Path) -> set[Path]:
+    """Fetch, install if needed, and verify the pinned Stage-1 release once."""
+
     root = root.resolve()
     archive = root / "results/releases" / ARCHIVE_NAME
     fetch_archive(archive)
@@ -340,7 +348,39 @@ def prepare_release_checkpoints(config_path: Path, root: Path) -> list[Path]:
         verified = install_archive(archive, root)
     if REGISTRY not in verified:
         raise ReleaseCheckpointError(f"release registry is not anchored by {INTERNAL_MANIFEST}")
+    return verified
+
+
+def prepare_release_checkpoints(config_path: Path, root: Path) -> list[Path]:
+    root = root.resolve()
+    verified = ensure_release(root)
     checkpoints = select_registry_checkpoints(load_config(config_path), root / REGISTRY, root)
+    unverified = sorted(set(checkpoints) - verified)
+    if unverified:
+        raise ReleaseCheckpointError(
+            f"release registry selected checkpoints outside {INTERNAL_MANIFEST}: {unverified}"
+        )
+    return checkpoints
+
+
+def prepare_release_matrix(root: Path) -> list[Path]:
+    """Return the exact canonical 16-member matrix after one release verification."""
+
+    root = root.resolve()
+    verified = ensure_release(root)
+    checkpoints: list[Path] = []
+    for relative_config in CANONICAL_CONFIG_PATHS:
+        config_path = root / relative_config
+        if not config_path.is_file():
+            raise ReleaseCheckpointError(f"canonical config is missing: {relative_config}")
+        checkpoints.extend(
+            select_registry_checkpoints(load_config(config_path), root / REGISTRY, root)
+        )
+    if len(checkpoints) != 16 or len(set(checkpoints)) != 16:
+        raise ReleaseCheckpointError(
+            "release matrix must contain exactly 16 unique checkpoint paths; "
+            f"observed={len(checkpoints)}, unique={len(set(checkpoints))}"
+        )
     unverified = sorted(set(checkpoints) - verified)
     if unverified:
         raise ReleaseCheckpointError(
@@ -351,11 +391,17 @@ def prepare_release_checkpoints(config_path: Path, root: Path) -> list[Path]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", required=True, type=Path)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--config", type=Path)
+    mode.add_argument("--all", action="store_true", help="select the canonical 16-member matrix")
     parser.add_argument("--root", type=Path, default=Path.cwd(), help=argparse.SUPPRESS)
     args = parser.parse_args()
     try:
-        checkpoints = prepare_release_checkpoints(args.config, args.root)
+        checkpoints = (
+            prepare_release_matrix(args.root)
+            if args.all
+            else prepare_release_checkpoints(args.config, args.root)
+        )
     except ReleaseCheckpointError as error:
         raise SystemExit(str(error)) from error
     for checkpoint in checkpoints:

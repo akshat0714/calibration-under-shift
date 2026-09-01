@@ -1513,7 +1513,7 @@ def generate_checkpoint3_artifacts(
     thresholds_path: str | Path,
     protocol_path: str | Path,
     output_dir: str | Path = "results/checkpoint3",
-    figure_path: str | Path = "results/figures/checkpoint3_headline.png",
+    figure_path: str | Path | None = "results/figures/checkpoint3_headline.png",
 ) -> dict[str, Path]:
     """Validate canonical inputs and write every Checkpoint-3 artifact."""
 
@@ -1586,16 +1586,21 @@ def generate_checkpoint3_artifacts(
             _secondary_markdown(frame, title),
         )
 
-    outputs["headline_figure"] = plot_checkpoint3_headline(
-        metrics,
-        main_table,
-        protocol,
-        figure_path,
-    )
+    if figure_path is not None:
+        outputs["headline_figure"] = plot_checkpoint3_headline(
+            metrics,
+            main_table,
+            protocol,
+            figure_path,
+        )
     manifest_path = destination / "checkpoint3_manifest.json"
     manifest = {
         "analysis_tiers": {
-            "primary": ["main_table_csv", "main_table_markdown", "finding", "headline_figure"],
+            "primary": [
+                key
+                for key in ("main_table_csv", "main_table_markdown", "finding", "headline_figure")
+                if key in outputs
+            ],
             "secondary_exploratory": sorted(key for key in outputs if key.startswith("secondary_")),
         },
         "inputs": {
@@ -1627,6 +1632,11 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         type=Path,
         default=Path("results/figures/checkpoint3_headline.png"),
     )
+    parser.add_argument(
+        "--no-figure",
+        action="store_true",
+        help="write tables only; the final unshaded F1 is generated separately",
+    )
     return parser.parse_args(argv)
 
 
@@ -1637,7 +1647,7 @@ def main(argv: Sequence[str] | None = None) -> dict[str, Path]:
         args.thresholds,
         args.protocol,
         args.output_dir,
-        args.figure,
+        None if args.no_figure else args.figure,
     )
     for name, path in outputs.items():
         print(f"{name}: {path}")
