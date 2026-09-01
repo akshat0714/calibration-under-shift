@@ -339,3 +339,15 @@ def test_crossing_statuses_distinguish_every_missing_case():
     assert _status(np.nan, 3) == "signal_did_not_cross"
     assert _status(1, np.nan) == "accuracy_did_not_cross"
     assert _status(np.nan, np.nan) == "neither_crossed"
+
+
+def test_checkpoint3_rejects_replaced_seed_even_when_replicate_count_matches(tmp_path):
+    metrics = _metrics()
+    protocol = _protocol()
+    thresholds = threshold_analysis(metrics, protocol)
+    replaced = metrics.copy()
+    mask = (replaced["dataset"] == "smids") & (replaced["model"] == "xception")
+    replaced.loc[mask & (replaced["seed"].astype(str) == "2027"), "seed"] = "9999"
+
+    with pytest.raises(ValueError, match="seed/fold identities"):
+        validate_checkpoint3_inputs(replaced, thresholds, protocol)

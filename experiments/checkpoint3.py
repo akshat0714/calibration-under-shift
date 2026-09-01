@@ -34,6 +34,12 @@ CANONICAL_REPLICATES: tuple[tuple[str, str, int], ...] = (
     ("smids", "mobilenet_v3_large", 3),
     ("hushem", "resnet50", 5),
 )
+CANONICAL_REPLICATE_IDENTITIES: Mapping[tuple[str, str], frozenset[tuple[str, str]]] = {
+    ("smids", "resnet50"): frozenset((str(seed), "") for seed in range(2025, 2030)),
+    ("smids", "xception"): frozenset((str(seed), "") for seed in range(2025, 2028)),
+    ("smids", "mobilenet_v3_large"): frozenset((str(seed), "") for seed in range(2025, 2028)),
+    ("hushem", "resnet50"): frozenset(("2025", str(fold)) for fold in range(5)),
+}
 CANONICAL_CORRUPTIONS = (
     "defocus_blur",
     "motion_blur",
@@ -323,6 +329,24 @@ def _validate_canonical_replicates(metrics: pd.DataFrame) -> None:
     }
     if mismatched:
         raise ValueError(f"canonical replicate counts do not match Stage 1: {mismatched}")
+    identities = {
+        (dataset, model): frozenset(
+            group[["seed", "fold"]].drop_duplicates().itertuples(index=False, name=None)
+        )
+        for (dataset, model), group in base.groupby(["dataset", "model"], sort=False)
+    }
+    identity_mismatches = {
+        key: {
+            "missing": sorted(CANONICAL_REPLICATE_IDENTITIES[key] - identities[key]),
+            "extra": sorted(identities[key] - CANONICAL_REPLICATE_IDENTITIES[key]),
+        }
+        for key in CANONICAL_REPLICATE_IDENTITIES
+        if identities.get(key) != CANONICAL_REPLICATE_IDENTITIES[key]
+    }
+    if identity_mismatches:
+        raise ValueError(
+            f"canonical seed/fold identities do not match Stage 1: {identity_mismatches}"
+        )
 
 
 def _validate_provenance(metrics: pd.DataFrame) -> None:

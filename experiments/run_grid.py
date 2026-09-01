@@ -636,9 +636,7 @@ def evaluate_deep_ensemble(
             "severity": severity,
             "n_samples": len(labels),
             "run_id": "ensemble-smids-resnet50",
-            "checkpoint": "|".join(
-                _provenance_path(item.checkpoint_path) for item in evaluators
-            ),
+            "checkpoint": "|".join(_provenance_path(item.checkpoint_path) for item in evaluators),
             "manifest_sha256": evaluators[0].manifest_digest,
             "corruption_protocol_sha256": evaluators[0].corruption_protocol_sha256,
             "evaluation_git_revision": evaluation_revision,
