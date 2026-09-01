@@ -92,7 +92,11 @@ fi
 cd calibration-under-shift
 test -z "$(git status --porcelain)"
 git fetch origin --tags
-git checkout --detach stage1-gcp-handoff-v1
+EXPECTED_TRAINING_SHA="65cee06fbf23294b358f35569d2cf2b32b46cbab"
+TAG_TRAINING_SHA="$(git rev-list -n 1 stage1-gcp-handoff-v1)"
+test "$TAG_TRAINING_SHA" = "$EXPECTED_TRAINING_SHA"
+git checkout --detach "$EXPECTED_TRAINING_SHA"
+test "$(git rev-parse HEAD)" = "$EXPECTED_TRAINING_SHA"
 test -z "$(git status --porcelain)"
 
 if ! command -v uv >/dev/null 2>&1 && ! command -v python3.11 >/dev/null 2>&1; then
