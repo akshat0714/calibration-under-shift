@@ -1,0 +1,7 @@
+analysis_tier,dataset,model,severity,mi_mean,mi_std,n_ensembles,ensemble_members
+secondary/exploratory,smids,resnet50,0,0.0466814777517304,,1,5
+secondary/exploratory,smids,resnet50,1,0.04985551968941286,,1,5
+secondary/exploratory,smids,resnet50,2,0.055019196552003664,,1,5
+secondary/exploratory,smids,resnet50,3,0.06477504676751998,,1,5
+secondary/exploratory,smids,resnet50,4,0.07540457865999384,,1,5
+secondary/exploratory,smids,resnet50,5,0.07987808521202576,,1,5

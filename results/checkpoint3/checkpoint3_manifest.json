@@ -1,0 +1,94 @@
+{
+  "analysis_tiers": {
+    "primary": [
+      "main_table_csv",
+      "main_table_markdown",
+      "finding",
+      "headline_figure"
+    ],
+    "secondary_exploratory": [
+      "secondary_conformal_csv",
+      "secondary_conformal_markdown",
+      "secondary_ece_transfer_csv",
+      "secondary_ece_transfer_markdown",
+      "secondary_ensemble_mi_csv",
+      "secondary_ensemble_mi_markdown",
+      "secondary_per_corruption_csv",
+      "secondary_per_corruption_markdown",
+      "secondary_selective_csv",
+      "secondary_selective_markdown"
+    ]
+  },
+  "inputs": {
+    "metrics": {
+      "path": "results/metrics.csv",
+      "sha256": "f67e0bcf666bfdc7528f1fdf30b994c9605b951c12defdb5ac7f67625d84cc35"
+    },
+    "protocol": {
+      "path": "configs/analysis_protocol.yaml",
+      "sha256": "5c6236584e2833f2ceb83c0438e5e5c66408df9175da994d5794d69a11074271"
+    },
+    "thresholds": {
+      "path": "results/thresholds.csv",
+      "sha256": "7bf7457cb1859da333926d6675717379509c407cb29aa917ac7d9fb98b454fbe"
+    }
+  },
+  "outputs": {
+    "finding": {
+      "path": "results/checkpoint3/checkpoint3_finding.txt",
+      "sha256": "4e2bc0497545e1b228327736e52277b367b8032568b55fdad35451d862f28a68"
+    },
+    "headline_figure": {
+      "path": "results/figures/checkpoint3_headline.png",
+      "sha256": "99bc49f9ed25fea9442b65d4e9c6063a59fa599c2bcca5f7081c6c810d0e6074"
+    },
+    "main_table_csv": {
+      "path": "results/checkpoint3/checkpoint3_main_table.csv",
+      "sha256": "b485ecff7163cfd6bf296432b5132f3ab48c7f95e2395c61af32c9c9577c2cd1"
+    },
+    "main_table_markdown": {
+      "path": "results/checkpoint3/checkpoint3_main_table.md",
+      "sha256": "ede0a3f65604a142f7b0eaeeaa05c5b8644945e8e0d30cf79c37245b40b4cf42"
+    },
+    "secondary_conformal_csv": {
+      "path": "results/checkpoint3/secondary_conformal.csv",
+      "sha256": "24a8ac6937143e76db420f2dcf16bcc79015c4da0614d18c3bebd94858673159"
+    },
+    "secondary_conformal_markdown": {
+      "path": "results/checkpoint3/secondary_conformal.md",
+      "sha256": "debe619b2b3fe16787a229a26d5e80cd03bd1ae47ae8031dedcc577121ab31c5"
+    },
+    "secondary_ece_transfer_csv": {
+      "path": "results/checkpoint3/secondary_ece_transfer.csv",
+      "sha256": "df47a22e74abbf054a00e3906299d113041fe3dd7dca442d0ed62d73c4da590a"
+    },
+    "secondary_ece_transfer_markdown": {
+      "path": "results/checkpoint3/secondary_ece_transfer.md",
+      "sha256": "5825d559cdb10429e5099ea1ed26b26c6d81d8a04b917ac8ff287c8f7a8d35f9"
+    },
+    "secondary_ensemble_mi_csv": {
+      "path": "results/checkpoint3/secondary_ensemble_mi.csv",
+      "sha256": "10c1bb3f2fd5c6cb5708878a714cc72b7f174be9f92760cca1baf1fc379a8e7b"
+    },
+    "secondary_ensemble_mi_markdown": {
+      "path": "results/checkpoint3/secondary_ensemble_mi.md",
+      "sha256": "a6509bd440790767b68e32250e4c607c6105265d356c350decd6d3f314681e50"
+    },
+    "secondary_per_corruption_csv": {
+      "path": "results/checkpoint3/secondary_per_corruption.csv",
+      "sha256": "4e3331a51acda6497b454149f011dcc9fdaa98800edd9c0d485c2f0d9cc04b87"
+    },
+    "secondary_per_corruption_markdown": {
+      "path": "results/checkpoint3/secondary_per_corruption.md",
+      "sha256": "2acb6423b2a3251926d6e1f1b113fbc742caab873350d01c66146231ea83f62b"
+    },
+    "secondary_selective_csv": {
+      "path": "results/checkpoint3/secondary_selective.csv",
+      "sha256": "8321a1b7443892e1db18ca4c5beaa0d090f8016c79f3b6a6d8d5c17f381f6fc4"
+    },
+    "secondary_selective_markdown": {
+      "path": "results/checkpoint3/secondary_selective.md",
+      "sha256": "5227643048e3dda98f623abc82ed94a71c706a770c11a5e107e0dc26b2466985"
+    }
+  }
+}

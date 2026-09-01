@@ -1,0 +1,17 @@
+analysis_tier,dataset,model,signal_method,signal_metric,signal_label,n_replicates,clean_signal_mean,clean_signal_std,signal_crossing_severity,clean_accuracy_mean,clean_accuracy_std,accuracy_drop_severity,early_warning_gap,status
+primary/prespecified,smids,resnet50,raw_softmax,ece,Raw-softmax ECE,5,0.0468318364024162,0.010724334451363692,3.0,0.8966666666666667,0.007071067811865407,3.0,0.0,same_or_later
+primary/prespecified,smids,resnet50,raw_softmax,mean_predictive_entropy,Raw-softmax predictive entropy,5,0.18622796833515162,0.03649808680153978,,0.8966666666666667,0.007071067811865407,3.0,,signal_did_not_cross
+primary/prespecified,smids,resnet50,raw_softmax,risk_at_80_coverage,Raw-softmax risk at 80% coverage,5,0.0483333333333333,0.008640183897219877,3.0,0.8966666666666667,0.007071067811865407,3.0,0.0,same_or_later
+primary/prespecified,smids,resnet50,aps,conformal_coverage,APS empirical coverage,5,0.9773333333333334,0.013824294235551829,,0.8966666666666667,0.007071067811865407,3.0,,signal_did_not_cross
+primary/prespecified,smids,xception,raw_softmax,ece,Raw-softmax ECE,3,0.051576605041821766,0.02328901129418406,3.0,0.8877777777777779,0.021688023662159054,3.0,0.0,same_or_later
+primary/prespecified,smids,xception,raw_softmax,mean_predictive_entropy,Raw-softmax predictive entropy,3,0.28184684614340466,0.1500669198712702,5.0,0.8877777777777779,0.021688023662159054,3.0,-2.0,same_or_later
+primary/prespecified,smids,xception,raw_softmax,risk_at_80_coverage,Raw-softmax risk at 80% coverage,3,0.052777777777777764,0.01683938285136407,3.0,0.8877777777777779,0.021688023662159054,3.0,0.0,same_or_later
+primary/prespecified,smids,xception,aps,conformal_coverage,APS empirical coverage,3,0.9866666666666667,0.005773502691896279,,0.8877777777777779,0.021688023662159054,3.0,,signal_did_not_cross
+primary/prespecified,smids,mobilenet_v3_large,raw_softmax,ece,Raw-softmax ECE,3,0.03958280318313167,0.0059184862295023335,2.0,0.8888888888888888,0.016442942874387495,2.0,0.0,same_or_later
+primary/prespecified,smids,mobilenet_v3_large,raw_softmax,mean_predictive_entropy,Raw-softmax predictive entropy,3,0.21680468817551923,0.032669039399142466,,0.8888888888888888,0.016442942874387495,2.0,,signal_did_not_cross
+primary/prespecified,smids,mobilenet_v3_large,raw_softmax,risk_at_80_coverage,Raw-softmax risk at 80% coverage,3,0.05416666666666664,0.014433756729740645,2.0,0.8888888888888888,0.016442942874387495,2.0,0.0,same_or_later
+primary/prespecified,smids,mobilenet_v3_large,aps,conformal_coverage,APS empirical coverage,3,0.9577777777777777,0.010715167512214404,4.0,0.8888888888888888,0.016442942874387495,2.0,-2.0,same_or_later
+primary/prespecified,hushem,resnet50,raw_softmax,ece,Raw-softmax ECE,5,0.13218638327358637,0.042488959005374076,,0.8654334038054967,0.07816300968507428,3.0,,signal_did_not_cross
+primary/prespecified,hushem,resnet50,raw_softmax,mean_predictive_entropy,Raw-softmax predictive entropy,5,0.41389878988265993,0.07404948582141009,4.0,0.8654334038054967,0.07816300968507428,3.0,-1.0,same_or_later
+primary/prespecified,hushem,resnet50,raw_softmax,risk_at_80_coverage,Raw-softmax risk at 80% coverage,5,0.08571428571428567,0.07284313590846836,4.0,0.8654334038054967,0.07816300968507428,3.0,-1.0,same_or_later
+primary/prespecified,hushem,resnet50,aps,conformal_coverage,APS empirical coverage,5,0.9582452431289639,0.03827820942600411,,0.8654334038054967,0.07816300968507428,3.0,,signal_did_not_cross

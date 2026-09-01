@@ -1,0 +1,17 @@
+dataset,model,signal_method,signal_metric,clean_signal,signal_crossing_severity,clean_accuracy,accuracy_drop_severity,early_warning_gap,signal_is_earlier
+hushem,resnet50,raw_softmax,ece,0.13218638327358637,,0.8654334038054967,3.0,,
+hushem,resnet50,raw_softmax,mean_predictive_entropy,0.41389878988265993,4.0,0.8654334038054967,3.0,-1.0,False
+hushem,resnet50,raw_softmax,risk_at_80_coverage,0.08571428571428567,4.0,0.8654334038054967,3.0,-1.0,False
+hushem,resnet50,aps,conformal_coverage,0.9582452431289639,,0.8654334038054967,3.0,,
+smids,mobilenet_v3_large,raw_softmax,ece,0.03958280318313167,2.0,0.8888888888888888,2.0,0.0,False
+smids,mobilenet_v3_large,raw_softmax,mean_predictive_entropy,0.21680468817551923,,0.8888888888888888,2.0,,
+smids,mobilenet_v3_large,raw_softmax,risk_at_80_coverage,0.05416666666666664,2.0,0.8888888888888888,2.0,0.0,False
+smids,mobilenet_v3_large,aps,conformal_coverage,0.9577777777777777,4.0,0.8888888888888888,2.0,-2.0,False
+smids,resnet50,raw_softmax,ece,0.0468318364024162,3.0,0.8966666666666667,3.0,0.0,False
+smids,resnet50,raw_softmax,mean_predictive_entropy,0.18622796833515162,,0.8966666666666667,3.0,,
+smids,resnet50,raw_softmax,risk_at_80_coverage,0.0483333333333333,3.0,0.8966666666666667,3.0,0.0,False
+smids,resnet50,aps,conformal_coverage,0.9773333333333334,,0.8966666666666667,3.0,,
+smids,xception,raw_softmax,ece,0.051576605041821766,3.0,0.8877777777777779,3.0,0.0,False
+smids,xception,raw_softmax,mean_predictive_entropy,0.28184684614340466,5.0,0.8877777777777779,3.0,-2.0,False
+smids,xception,raw_softmax,risk_at_80_coverage,0.052777777777777764,3.0,0.8877777777777779,3.0,0.0,False
+smids,xception,aps,conformal_coverage,0.9866666666666667,,0.8877777777777779,3.0,,
