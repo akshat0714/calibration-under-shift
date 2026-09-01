@@ -11,6 +11,7 @@ Usage:
   bash run.sh --prepare <smids|hushem>
   bash run.sh --audit-kromp
   bash run.sh --train <config.yaml> [extra train_matrix arguments]
+  bash run.sh --stage1-clean <mixed-registry.csv> [extra evaluator arguments]
   bash run.sh --eval-only <config.yaml> <checkpoint.pt> [checkpoint.pt ...]
   bash run.sh --full-smids
 
@@ -117,6 +118,13 @@ case "${1:---help}" in
     config_path="$2"
     shift 2
     "$python_bin" -m experiments.train_matrix --config "$config_path" "$@"
+    ;;
+  --stage1-clean)
+    require_environment
+    if [[ -z "${2:-}" ]]; then usage >&2; exit 2; fi
+    registry_path="$2"
+    shift 2
+    "$python_bin" -m experiments.evaluate_clean_matrix --registry "$registry_path" "$@"
     ;;
   --eval-only)
     require_environment

@@ -14,7 +14,7 @@ This file is a defense guide, not a substitute for reading the source. Before a 
 
 **3:15–4:20 — result.** Replace this paragraph only after the full grid: state clean mean±SD, the first accuracy-drop severity, the first reliability-signal severity, the early-warning gap, and the strongest per-corruption exception. Do not use the synthetic demo or one-seed pilot as evidence.
 
-**4:20–5:00 — limitation and next step.** “These are public proxies and simulated shifts. White balance is particularly crude relative to a real phone ISP. I would validate severity against paired captures of the same specimen on reference and smartphone hardware, group by patient, hold out a center, and freeze calibration before target-center testing.”
+**4:20–5:00 — limitation and next step.** “These are public proxies and simulated shifts. The independent-channel Gaussian baseline is deliberately the least physical corruption, while the fixed-direction illumination proxy is also much simpler than a real phone ISP. I would validate severity against paired captures of the same specimen on reference and smartphone hardware, group by patient, hold out a center, and freeze calibration before target-center testing.”
 
 ## Module map
 
@@ -24,7 +24,7 @@ This file is a defense guide, not a substitute for reading the source. Before a 
 | `src/data/datasets.py` | decodes manifest rows and injects evaluation corruption | constructor refuses corruption on `train`; file and in-memory manifests share validation |
 | `src/models/build.py` | ResNet50/Xception/MobileNet factory and features | explicit dropout enables MC inference; one feature interface supports OOD and attribution |
 | `src/train.py` | frozen-head then low-LR fine-tuning | macro-F1 checkpointing; clean train only; run provenance saved |
-| `src/shifts/corruptions.py` | seven deterministic device proxies | paired random structure across severity; no corrupted copies on disk |
+| `src/shifts/corruptions.py` | seven deterministic device proxies | fixed images/seeds pair the ladder; Poisson draws remain condition-specific; no corrupted copies on disk |
 | `src/metrics/calibration.py` | ECE/adaptive ECE/Brier/NLL | ECE is top-label and bin-sensitive, so it is never the sole reliability metric |
 | `src/metrics/selective.py` | risk–coverage, AURC, failure AUROC | uncertainty is evaluated by ranking failures, not only by its mean |
 | `src/uncertainty/temperature.py` | scalar and vector scaling | fit function rejects non-calibration roles |
@@ -106,7 +106,7 @@ It depends on how confidence is used. If probabilities trigger embryo ranking, a
 
 **What is least physically realistic?**
 
-The global gamma/white-balance model. A phone ISP includes demosaicing, local denoising, sharpening, tone mapping, auto-exposure, and spatial/color nonlinearities. I would estimate device statistics from paired captures and test whether synthetic and real shift induce the same metric and attribution ordering.
+The independent per-channel Gaussian-noise baseline, deliberately. I retained the ImageNet-C convention for benchmark comparability, but independent RGB residuals are not a faithful post-demosaic phone-sensor model. I therefore redesigned shot noise as the more physically motivated counterpart: it samples a Poisson perturbation from luminance and shares that residual across RGB channels, removing implausible rainbow speckle while preserving color structure. The illumination proxy is simplified too: at the fixed seed it darkens midtones and suppresses red while increasing green and blue, creating a green/teal cast. A real phone ISP also includes raw Bayer sampling, demosaicing, local denoising, sharpening, tone mapping, and auto-exposure. I would estimate device statistics from paired captures and test whether synthetic and real shift induce the same metric and attribution ordering.
 
 **How would this behave on Embryoscope-versus-smartphone data?**
 

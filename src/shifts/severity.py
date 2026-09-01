@@ -41,11 +41,11 @@ ALIASES = {
 PHYSICAL_MECHANISMS = {
     "defocus_blur": "lower numerical-aperture phone optics or autofocus error",
     "motion_blur": "handheld capture without a fixed microscope stage",
-    "gaussian_noise": "read noise from a small CMOS sensor",
+    "gaussian_noise": "ImageNet-C-style independent-channel additive baseline",
     "shot_noise": "luminance-correlated photon noise after demosaicing",
     "jpeg": "lossy smartphone image encoding and transfer",
     "resample": "lower magnification or sensor pixel density",
-    "illumination": "light-source spectrum and phone image-signal-processor variation",
+    "illumination": "fixed-direction global gamma and green/teal white-balance proxy",
 }
 
 

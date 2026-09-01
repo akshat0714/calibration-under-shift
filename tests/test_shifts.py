@@ -120,6 +120,14 @@ def test_shot_noise_variance_is_signal_dependent():
     assert residual[:, 256:].std() > residual[:, 128:256].std() > 0
 
 
+def test_fixed_illumination_seed_darkens_with_green_teal_bias():
+    clean = np.full((32, 32, 3), 128, dtype=np.uint8)
+    shifted = np.asarray(corrupt(clean, "illumination", 5, seed=1729))
+    channel_means = shifted.mean(axis=(0, 1))
+    assert np.all(channel_means < 128)
+    assert channel_means[0] < channel_means[2] < channel_means[1]
+
+
 def test_motion_blur_support_grows_at_hushem_scale():
     impulse = np.zeros((131, 131, 3), dtype=np.uint8)
     impulse[65, 65] = 255

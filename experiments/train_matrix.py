@@ -55,6 +55,18 @@ def train_matrix(
     return pd.DataFrame(rows)
 
 
+def _write_registry(registry: pd.DataFrame, path: Path) -> None:
+    """Atomically replace a checkpoint registry after a completed invocation."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    try:
+        registry.to_csv(temporary, index=False)
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", required=True, type=Path)
@@ -66,11 +78,10 @@ def main() -> None:
     registry = train_matrix(
         load_config(args.config), seeds=args.seeds, folds=args.folds, smoke=args.smoke
     )
-    args.registry.parent.mkdir(parents=True, exist_ok=True)
     if args.registry.exists():
         registry = pd.concat([pd.read_csv(args.registry), registry], ignore_index=True)
         registry = registry.drop_duplicates("checkpoint", keep="last")
-    registry.to_csv(args.registry, index=False)
+    _write_registry(registry, args.registry)
     print(f"wrote {len(registry)} checkpoint rows to {args.registry}")
 
 

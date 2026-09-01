@@ -17,6 +17,9 @@ data/splits/demo.csv
 results/checkpoints/
 results/cache/
 results/runs/
+results/logs/
+results/checkpoint_registry*
+results/stage1_*
 results/demo_*
 results/demo_figures/
 results/eval_*
@@ -28,3 +31,5 @@ results/pilot_*
 # Local-only scratch output.
 scratch/
 tmp/
+calibration-stage1-*.tar.zst
+calibration-stage1-*.tar.zst.sha256
