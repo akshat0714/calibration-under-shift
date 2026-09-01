@@ -1,92 +1,101 @@
-# Calibration Under Shift: Protocol and Interim Research Report
+# Calibration Under Shift: Prespecified Reliability Signals Under Simulated Device Degradation
 
-**Evidence status (2026-09-01):** the implementation, public-release audits, fixed SMIDS/HuSHeM manifests, synthetic end-to-end engineering check, and clean-test sanity matrix are complete. The full shifted evaluation grid is still pending, so the clean results below are interim checks rather than the prespecified headline finding; no clinically oriented conclusion is claimed.
+## Abstract
 
-## Prespecified hypothesis
+This study asked whether standard reliability signals warn before accuracy degrades under simulated low-cost imaging shift. Sixteen models were trained only on clean SMIDS or HuSHeM images; a disjoint clean calibration split fitted post-hoc methods. The same test images were evaluated across seven corruptions and five severities. No reliability signal crossed before the five-point accuracy-drop threshold in any of the 10 comparisons where both crossings were observed; six further signals never crossed. The prespecified hypothesis was therefore not supported at these thresholds on these datasets. Clean-fitted temperature scaling improved severity-5 ECE on all three SMIDS backbones but worsened HuSHeM ResNet50. These public-proxy results support no clinical claim and motivate paired-device validation and monitoring beyond uncertainty dashboards.
 
-We predict that calibration error and predictive uncertainty will degrade at lower simulated device-corruption severities than classification accuracy. We will test this by measuring accuracy, macro-F1, ECE, adaptive ECE, NLL, Brier score, uncertainty, selective risk, and conformal coverage across fixed severity ladders applied only at evaluation time. The hypothesis is falsified if prespecified reliability thresholds are not crossed before a five-percentage-point accuracy drop, consistently across datasets and seeds.
+## Motivation and prespecified question
 
-> Status: implementation and clean-test sanity matrix complete; full shifted evaluation pending. The hypothesis and thresholds were frozen before the full seeded grid. This is a local prespecification, not an externally registered protocol.
+Aggregate accuracy can conceal changes in probability quality, error ranking, disagreement, or prediction-set behavior. Kanakasabapathy et al. framed lossy acquisition and device/domain quality as a deployment problem [2], while Thirumalaraju et al. found substantial intermodel and cross-center variability despite similar average performance [1]. This work asks whether off-the-shelf reliability signals provide threshold-level lead time along a controlled degradation axis.
 
-## Motivation
+The following hypothesis was written before the full shifted grid and is preserved verbatim:
 
-Deployment failure can be quiet. A diagnostic classifier may preserve enough decisions to keep aggregate accuracy apparently stable while its probabilities become overconfident, its errors become harder to identify, or independently trained models cease to agree. Those changes matter when confidence determines whether an image is accepted, re-acquired, or sent for human review.
+> We predict that calibration error and predictive uncertainty will degrade at lower simulated device-corruption severities than classification accuracy. We will test this by measuring accuracy, macro-F1, ECE, adaptive ECE, NLL, Brier score, uncertainty, selective risk, and conformal coverage across fixed severity ladders applied only at evaluation time. The hypothesis is falsified if prespecified reliability thresholds are not crossed before a five-percentage-point accuracy drop, consistently across datasets and seeds.
 
-This question is closely aligned with two threads in the Shafiee Lab's work. Kanakasabapathy et al. developed adaptive adversarial networks for lossy and domain-shifted medical-image datasets, explicitly spanning clinical and smartphone acquisition quality [1]. Thirumalaraju et al. trained 50 replicate embryo-selection networks and reported weak rank agreement (mean Kendall's W 0.3571 at MGH and 0.3410 at Cornell), critical error rates around 15%, and a cross-center error-variance increase of 46.07 percentage-points squared despite similar architectures and average performance [2]. This study asks whether calibration, ensemble disagreement, selective risk, conformal sets, input-shift scores, and attribution drift can serve as per-image warnings along a controlled device-quality axis.
-
-## Data and task definitions
-
-SMIDS is the primary executable public-data path: 3,000 sperm images in normal (1,021), abnormal (1,005), and non-sperm (974) classes [3]. The release was split once, stratified with seed 2025, into 70% train, 10% validation, 10% calibration, and 10% test. HuSHeM supplies 216 sperm-head images in normal (54), tapered (53), pyriform (57), and amorphous (52) classes and uses five stratified outer folds, each with disjoint training, validation, calibration, and test roles [4].
-
-The originally proposed hero dataset, Kromp et al.'s 2,344-image blastocyst release [5], cannot currently support the promised patient-level split. All 2,344 images decode, but the local audit found 15 exact-byte duplicate groups, including cross-prefix duplicates. The public archive has no patient identifier, while filename prefixes produce 851 groups rather than the paper's 837 patients. It also contains a conflicting duplicate expansion label for `838_02.png` and no label for `846_01.png`. The preparation code therefore requires an author-verified patient map and explicit duplicate/label resolution; it does not relabel filename prefixes as patients.
-
-All locally acquired SMIDS and HuSHeM files were decoded. Neither release has corrupt or byte-identical duplicate images. SMIDS contains 1,914 distinct dimensions and 480 PNG payloads named `.bmp`; HuSHeM contains six images that differ from its nominal 131×131 size. These anomalies are handled by content-aware decoding and deterministic resizing and are retained in the audit record.
+This was a local prespecification, not an external registration. Its aggregation order, thresholds, and missing-crossing rule were frozen in `configs/analysis_protocol.yaml`; the observed result did not support it.
 
 ## Methods
 
-### Leakage controls and model training
+### Data, models, and leakage controls
 
-Models train on clean training images only. Standard light geometry and color augmentation are restricted to that role. Validation macro-F1 selects checkpoints; validation data do not fit post-hoc calibration. A fourth, disjoint calibration role is the only input accepted by temperature scaling, vector scaling, and APS conformal fitting. Test images never select a model, fit a scaler, or determine a conformal threshold.
+SMIDS supplies a three-class sperm-image task with disjoint train, validation, calibration, and test roles [7]. HuSHeM supplies a four-class sperm-head task across five stratified outer folds [8]. Neither release includes image-level patient/source linkage, so these are public-proxy rather than patient-level evaluations.
 
-The planned matrix uses ImageNet-pretrained ResNet50 as the primary backbone across five seeds, Xception across three seeds to mirror MD-nets, and MobileNetV3-Large across three seeds as an on-device comparison. Each model has dropout immediately before its classification head. Transfer learning freezes the feature extractor for 4–5 head epochs, then fine-tunes with AdamW, a lower learning rate, cosine decay, and early stopping on validation macro-F1. Each run records the resolved YAML, seed, Git revision, environment, epoch curves, and checkpoint.
+The matrix contains five SMIDS ResNet50 seeds, three Xception seeds, three MobileNetV3-Large seeds, and HuSHeM ResNet50 across five folds. Models train on clean images; validation macro-F1 selects checkpoints. Temperature/vector scaling and APS fit only the clean calibration role. Test images fit nothing, and corruptions are evaluation-only. The five ResNet50 seeds form the SMIDS ensemble. The pilot and synthetic demo are excluded from scientific summaries.
 
-### Device and population shift
+Kromp et al. remains excluded: its public files lack defensible patient linkage and contain unresolved duplicate/annotation defects [9]. `DATASETS.md` documents the blocker; filename prefixes were not relabeled as patients.
 
-Seven deterministic corruption families are applied after image decoding and before the fixed evaluation transform: defocus blur, motion blur, Gaussian noise, luminance-correlated Poisson shot noise, JPEG compression, down–up resampling, and combined gamma/white-balance shift. Each has five parameters fixed before model results are examined. Blur sigma and motion-kernel length are defined at a 224-pixel reference short side and scaled to native image geometry, preventing SMIDS dimension variation from changing relative severity. Gaussian noise deliberately retains the ImageNet-C independent per-pixel/channel additive convention for benchmark comparability and is the least physically realistic corruption by design. Shot noise is its more physically motivated counterpart: it is sampled from image luminance and its residual is shared across RGB channels, a post-demosaic approximation that avoids implausible independent color speckle. The same held-out images and seed are used at every severity; the seed fixes motion angle and illumination direction, while Poisson draws are reproducible per condition but are not coupled across count scales. At the fixed protocol seed of 1729, the illumination transformation uses gamma values above one to darken midtones and suppresses red while increasing green and blue, producing a growing green/teal cast. A class-prior resampling condition doubles the SMIDS abnormal-class weight as a population-prevalence proxy; it is analyzed separately from the device-corruption average.
+### Simulated shift and reliability methods
 
-These transformations are sensitivity analyses, not a physical calibration of a particular phone. The critical validation experiment would compare their image statistics and metric ordering against paired captures of the same specimen on reference and smartphone hardware.
+Seven deterministic corruptions are applied to the same test images at severities 1–5: defocus, motion, Gaussian noise, shot noise, JPEG, resampling, and gamma/white-balance shift. These are ordinal sensitivity settings, not named-device equivalents. Gaussian noise deliberately follows the ImageNet-C independent-channel convention for comparability and is least physical by design [4]. Its more physical counterpart shares a luminance-derived Poisson residual across RGB channels. Fixed-seed illumination darkens midtones, suppresses red, and increases green/blue, producing the implemented green/teal direction.
 
-### Reliability and uncertainty
+The grid records classification, calibration, risk–coverage, failure-detection AUROC, 30-pass MC dropout, ensemble uncertainty, APS, energy, and Mahalanobis metrics. Temperature scaling uses clean calibration [5]; APS uses a corrected split-conformal quantile at nominal 90% coverage [6].
 
-Classification metrics are accuracy, macro-F1, per-class recall, and one-vs-rest AUROC. Calibration metrics are 15-bin top-label ECE, equal-mass adaptive ECE, multiclass Brier score, and NLL [6]. Scalar temperature scaling is optimized with LBFGS on clean calibration logits; because division by a positive scalar preserves logit order, it cannot change predicted classes or accuracy. Vector scaling is included as a more flexible, less data-efficient comparison.
+The primary analysis weights corruptions equally within each seed/fold, then summarizes replicates. Accuracy crosses more than 0.05 below clean. ECE must exceed 2× clean and a 0.02 increase; entropy, 2× and 0.05; risk at 80% coverage, 2× and 0.02. APS crosses below 0.85. A signal is earlier only when both crossings exist and its severity is lower. Missing crossings remain missing.
 
-Five ResNet seeds form the deep ensemble. Mean softmax gives the ensemble prediction; predictive entropy measures total uncertainty and mutual information isolates disagreement. Thirty-pass MC dropout is the lower-cost comparison. Selective prediction ranks samples from least to most uncertain and reports the risk–coverage curve, AURC, risk at 80% coverage, and AUROC for detecting an incorrect prediction.
+## Results
 
-APS split conformal prediction uses α=0.1 and a finite-sample corrected calibration quantile [7]. Empirical coverage and mean prediction-set size are recorded. Its marginal coverage guarantee relies on exchangeability between calibration and test examples; degradation under device or population shift is therefore expected to appear as coverage loss, larger sets, or both.
+### Clean sanity context
 
-Input-shift baselines are maximum-softmax uncertainty, log-sum-exp energy, and the minimum class-conditional Mahalanobis distance in penultimate feature space. Class means and a shared regularized covariance are fitted on clean training features. Grad-CAM adds a decision-strategy view, with a tested Grad-CAM++ option available for comparison; class-stratified panels are qualitative, while full-test clean and shifted maps are compared with flattened Spearman rank correlation and IoU between exact top-20% saliency masks. Constant non-localizing maps are recorded as undefined rather than perfectly stable.
+| Dataset | Backbone | Clean accuracy, mean ± sample SD | Clean macro-F1, mean ± sample SD |
+|---|---|---:|---:|
+| SMIDS | ResNet50 | 89.7% ± 0.7 | 89.7% ± 0.7 |
+| SMIDS | Xception | 88.8% ± 2.2 | 88.9% ± 2.1 |
+| SMIDS | MobileNetV3-Large | 88.9% ± 1.6 | 89.0% ± 1.6 |
+| HuSHeM | ResNet50 | 86.5% ± 7.8 | 86.5% ± 7.9 |
 
-### Prespecified analysis
+HuSHeM's ±7.8-point spread is exposed to small-*n* resolution: four folds contain 43 images and one contains 44, so one classification moves accuracy by 2.27–2.33 points. It blends model, fold-composition, and evaluation variability, not model instability alone. Its connection to Thirumalaraju et al. is contextual, not an effect-size comparison [1].
 
-For each severity, device corruptions are averaged equally within a seed before means and sample standard deviations are computed across seeds or folds. Accuracy degradation is the first severity more than 0.05 below clean accuracy. ECE is degraded only when it exceeds both twice its clean value and a 0.02 absolute increase; entropy similarly requires a two-fold and 0.05-nat increase; selective risk requires a two-fold and 0.02 absolute increase. Conformal coverage is degraded below 0.85. A reliability signal is “earlier” only when its first crossing has a lower severity than the accuracy crossing. Missing crossings remain missing.
+MobileNetV3-Large's SMIDS clean accuracy was descriptively close to ResNet50, 88.9% versus 89.7%. This makes it relevant to constrained on-device research, but establishes neither equivalence nor deployment readiness.
 
-## Interim results
+### Primary/prespecified threshold result
 
-Checkpoint 2 verified the multi-seed/fold clean-test sanity matrix. These clean-only estimates do not answer the shifted-grid hypothesis and must not be promoted into the headline figure.
+![Threshold-normalized primary trajectories](results/figures/f1_headline_lockstep.png)
 
-HuSHeM ResNet50 clean accuracy was 86.5% ± 7.8 percentage points across five outer folds (mean ± sample SD). The apparently large fold spread is strongly exposed to small-*n* granularity: the test folds contain 43 images (44 in fold 0), so one additional misclassification moves fold accuracy by 2.27–2.33 points, or about 2.3 points. It should therefore be read as a mixture of learned-model variability, fold-composition variability, and coarse evaluation resolution—not model instability alone. This is a small-data illustration of the broader inter-model/inter-evaluation variability theme emphasized by Thirumalaraju et al. [2], not a directly comparable effect size.
+**Figure 1.** Clean is 0 and each frozen threshold is 1; X marks the first crossing. Signals and accuracy share the severity axis, with no outcome shading. Missing X means no crossing. Means weight corruptions equally within seed/fold.
 
-On SMIDS, MobileNetV3-Large and ResNet50 were close on clean accuracy (88.9% ± 1.6 versus 89.7% ± 0.7) and macro-F1 (89.0% ± 1.6 versus 89.7% ± 0.7). This descriptive near-parity makes the compact backbone relevant to research on memory-, latency-, and power-constrained on-device diagnostic deployment, while proving neither statistical equivalence nor deployment readiness.
+| Dataset / backbone | Replicates | Accuracy drop | ECE | Predictive entropy | Selective risk @80% | APS coverage |
+|---|---:|---:|---:|---:|---:|---:|
+| SMIDS / ResNet50 | 5 seeds | S3 | S3 | — | S3 | — |
+| SMIDS / Xception | 3 seeds | S3 | S3 | S5 | S3 | — |
+| SMIDS / MobileNetV3-Large | 3 seeds | S2 | S2 | — | S2 | S4 |
+| HuSHeM / ResNet50 | 5 folds | S3 | — | S4 | S4 | — |
 
-The remaining verified results are infrastructural:
+All 10 observed paired crossings were simultaneous or later; six signals never crossed. The hypothesis was therefore not supported at these thresholds on SMIDS and HuSHeM. An em dash means missing, not severity 5.
 
-1. SMIDS and HuSHeM archive hashes match their primary publisher records, all expected images decode, and class counts reproduce the releases.
-2. Fixed manifests are present for SMIDS and all five HuSHeM folds, with a distinct calibration role.
-3. The synthetic workflow completes training, clean-calibration fitting, corrupted inference, MC dropout, APS, OOD scoring, tidy metric output, threshold analysis, Grad-CAM stability, and figure generation.
-4. The automated suite covers deterministic shifts, monotonic endpoint distortion, hand-computable calibration and selective metrics, exchangeable conformal coverage, calibration-only guards, split leakage, model interfaces, attribution, plotting, and end-to-end checkpoint inference.
+### Secondary/exploratory analyses
 
-The prespecified finding and headline figure will be added only after the full seeded shifted grid produces `results/metrics.csv`, the analysis produces `results/thresholds.csv`, and the fresh-clone reproduction drill matches those artifacts.
+These analyses do not revise the primary claim. Per-corruption application produced 0 early warnings among 58 observed crossing pairs; signals never crossed in the other 54 of 112 correlated comparisons. No multiple-testing claim is made; trajectories are in `results/figures/appendix/`.
 
-## Limitations
+At severity 5, mean raw→temperature ECE was 0.274→0.251 for SMIDS ResNet50, 0.397→0.384 for MobileNetV3, 0.181→0.178 for Xception, and 0.184→0.198 for HuSHeM. Paired changes were −0.023, −0.013, −0.003, and +0.014. This mixed transfer is consistent in spirit with, but not a replication of, Ovadia et al. [3].
 
-The data are public proxies, not the lab's clinical cohorts. SMIDS has no released patient or source-field lineage, and HuSHeM identifies 15 donors in aggregate but releases no image-to-donor map; image-level splitting may therefore overstate generalization. Kromp is currently unusable for the required patient-level design without author metadata. HuSHeM is small, and fold estimates will be noisy.
+Failure-detection AUROC from severity 1→5 changed by 0.817→0.697 for SMIDS ResNet50, 0.839→0.695 for Xception, 0.807→0.657 for MobileNetV3, 0.815→0.704 for HuSHeM, and 0.836→0.732 for the ensemble. At 80% retention, energy selection recovered 3.6–5.2 accuracy points at severities 3–4; ensemble entropy recovered 5.2/5.4 points. These are ranking results, not a validated abstention policy.
 
-The shifts are simulated. Gaussian blur, ideal line-kernel motion, luminance-domain Poisson statistics, JPEG quality, bilinear resampling, and global gamma/channel gains do not capture a phone lens's modulation transfer function, raw Bayer sampling, demosaicing, denoising, sharpening, local tone mapping, or device-dependent color pipeline. The independent-channel Gaussian baseline is deliberately the least physically realistic corruption; the global green/teal white-balance and gamma transformation is also a simplified fixed-direction proxy rather than a phone ISP model. No severity is asserted to equal a clinical microscope or smartphone system.
+APS clean→severity-5 coverage was 0.977→0.865 for SMIDS ResNet50, 0.958→0.760 for MobileNetV3, 0.987→0.869 for Xception, and 0.958→0.942 for HuSHeM. Set size grew from 1.761→1.910, 1.546→1.822, 1.873→1.994, and 2.311→2.966 classes. Neither quantity supplied primary lead time. The real-checkpoint Grad-CAM/++ defocus analysis in [Figure 7](results/figures/f7_attribution_stability_accuracy.png) is exploratory, not a primary alarm result.
 
-Calibration error is estimator-dependent, particularly at small n; ECE can hide within-bin errors and adaptive ECE changes bin boundaries across conditions. Temperature scaling corrects a global sharpness error but cannot repair class-conditional or input-dependent miscalibration. APS coverage is marginal, not per-class or per-patient, and exchangeability is exactly what distribution shift threatens. Grad-CAM is a coarse post-hoc attribution and is not a causal account of a model decision.
+## Interpretation and limitations
 
-Nothing in this study constitutes clinical validation, a performance guarantee, or a recommended decision policy.
+The central finding is lockstep, not lead time: curves changed, but frozen decision points did not precede accuracy. This bounded null does not make uncertainty methods useless. A score can retain per-sample ranking value without acting as an earlier aggregate alarm.
 
-## Next steps
+The result is consistent in spirit—not a replication—with Thirumalaraju et al.'s reliability warning [1]. Here, common signals provided no threshold-level lead time. For low-cost deployment research, uncertainty dashboards alone should not be degradation alarms; paired-device validation and monitoring remain necessary.
 
-The immediate next step is to run the prespecified shifted evaluation and analysis grid from the verified clean-test checkpoints. Kromp should remain blocked until its authors provide a patient map and resolve annotation discrepancies. The most informative lab-data extension is a paired acquisition experiment on the same embryo or sperm sample: reference microscope versus smartphone hardware, with patients grouped and a center held out. Corruption parameters could then be fitted to measured image statistics, while calibration and alert thresholds remain frozen before target-center evaluation.
+One post-hoc observation concerns threshold relativity. HuSHeM clean ECE was 0.132, so the frozen 2× rule required exceeding 0.264 and the 0.02 minimum increase. This can be harder than an absolute criterion when baseline ECE is high, but does not redefine this result. Absolute-threshold or AUROC-style alarm protocols are future, prespecified work.
+
+The shifts are simulated public proxies, not paired reference/smartphone captures. The releases lack patient/source linkage and held-out-center evaluation; HuSHeM is small. Synthetic corruptions omit a phone's full optical and ISP pipeline. Kromp remains blocked pending verified linkage and labels. ECE is estimator-dependent, APS coverage is marginal and exchangeability-dependent, and Grad-CAM is noncausal. Nothing here constitutes clinical validation, a performance guarantee, or a decision policy.
+
+Next, paired reference/low-cost captures should use patient-grouped splits, a held-out center, measured device statistics, and a newly frozen alert protocol.
+
+## Traceability
+
+Aggregate numbers derive from `results/metrics.csv`; crossings from `results/thresholds.csv`; definitions from `configs/analysis_protocol.yaml`. `results/figure_data/final_figure_manifest.json` registers plotted data and hashes. Attribution has separate provenance. Pilot/demo rows are excluded.
 
 ## References
 
-1. Kanakasabapathy MK et al. *Nature Biomedical Engineering* 5, 571–585 (2021). [doi:10.1038/s41551-021-00733-w](https://doi.org/10.1038/s41551-021-00733-w).
-2. Thirumalaraju P et al. *Fertility and Sterility* 125(2), 277–286 (2026; online 2025). [doi:10.1016/j.fertnstert.2025.08.021](https://doi.org/10.1016/j.fertnstert.2025.08.021).
-3. Takidin H, Ceylan HI, Kusetogullari H. *Sperm Morphology Image Data Set (SMIDS)*, Mendeley Data v1 (2022). [doi:10.17632/6xvdhc9fyb.1](https://doi.org/10.17632/6xvdhc9fyb.1).
-4. Shaker M, Monadjemi SA. *Human Sperm Head Morphology dataset (HuSHeM)*, Mendeley Data v3 (2018). [doi:10.17632/tt3yj2pf38.3](https://doi.org/10.17632/tt3yj2pf38.3).
-5. Kromp F et al. *Scientific Data* 10, 271 (2023). [doi:10.1038/s41597-023-02182-3](https://doi.org/10.1038/s41597-023-02182-3).
-6. Guo C et al. ICML, PMLR 70:1321–1330 (2017). [Proceedings](https://proceedings.mlr.press/v70/guo17a.html).
-7. Angelopoulos AN, Bates S. *Foundations and Trends in Machine Learning* 16(4), 494–591 (2023). [doi:10.1561/2200000101](https://doi.org/10.1561/2200000101).
+1. Thirumalaraju P et al. “Stability and reliability of artificial intelligence models in embryo selection for in vitro fertilization.” *Fertility and Sterility* 125(2), 277–286 (2026; online 2025). [doi:10.1016/j.fertnstert.2025.08.021](https://doi.org/10.1016/j.fertnstert.2025.08.021).
+2. Kanakasabapathy MK et al. “Adaptive adversarial neural networks for the analysis of lossy and domain-shifted datasets of medical images.” *Nature Biomedical Engineering* 5, 571–585 (2021). [doi:10.1038/s41551-021-00733-w](https://doi.org/10.1038/s41551-021-00733-w).
+3. Ovadia Y et al. “Can You Trust Your Model's Uncertainty? Evaluating Predictive Uncertainty Under Dataset Shift.” NeurIPS (2019). [Official proceedings](https://proceedings.neurips.cc/paper_files/paper/2019/hash/8558cb408c1d76621371888657d2eb1d-Abstract.html).
+4. Hendrycks D, Dietterich T. “Benchmarking Neural Network Robustness to Common Corruptions and Perturbations.” ICLR (2019). [OpenReview](https://openreview.net/forum?id=HJz6tiCqYm).
+5. Guo C et al. “On Calibration of Modern Neural Networks.” ICML, PMLR 70:1321–1330 (2017). [Proceedings](https://proceedings.mlr.press/v70/guo17a.html).
+6. Angelopoulos AN, Bates S. “Conformal Prediction: A Gentle Introduction.” *Foundations and Trends in Machine Learning* 16(4), 494–591 (2023). [doi:10.1561/2200000101](https://doi.org/10.1561/2200000101).
+7. Takidin H, Ceylan HI, Kusetogullari H. *Sperm Morphology Image Data Set (SMIDS)*, Mendeley Data v1 (2022). [doi:10.17632/6xvdhc9fyb.1](https://doi.org/10.17632/6xvdhc9fyb.1).
+8. Shaker M, Monadjemi SA. *Human Sperm Head Morphology dataset (HuSHeM)*, Mendeley Data v3 (2018). [doi:10.17632/tt3yj2pf38.3](https://doi.org/10.17632/tt3yj2pf38.3).
+9. Kromp F et al. “An annotated human blastocyst dataset to benchmark deep learning architectures for in vitro fertilization.” *Scientific Data* 10, 271 (2023). [doi:10.1038/s41597-023-02182-3](https://doi.org/10.1038/s41597-023-02182-3).
