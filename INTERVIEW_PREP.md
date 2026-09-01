@@ -84,6 +84,14 @@ In-distribution classifiers often produce a large logit and therefore more negat
 
 ## Likely questions and crisp answers
 
+**Why is HuSHeM's ±7.8-point fold spread so large?**
+
+The statistic is the sample SD of clean accuracy across five ResNet50 outer-fold models, not a variance estimate for an individual image. Four test folds contain 43 images and one contains 44, so one additional misclassification moves fold accuracy by 2.27–2.33 percentage points—about 2.3 points. The 86.5% ± 7.8 result therefore combines learned-model variability, fold composition, and coarse small-*n* evaluation resolution; it is not evidence of model instability alone. I connect it to Thirumalaraju et al.'s broader inter-model/inter-evaluation variability theme, not to their effect size as if the studies were directly comparable.
+
+**Why does MobileNetV3–ResNet50 near-parity matter?**
+
+On clean SMIDS, MobileNetV3-Large was descriptively close to ResNet50 in accuracy (88.9% ± 1.6 versus 89.7% ± 0.7) and macro-F1 (89.0% ± 1.6 versus 89.7% ± 0.7). That makes the compact backbone worth carrying into on-device diagnostic deployment research, where memory, latency, and power matter. It does not establish statistical equivalence, clinical validity, or production readiness.
+
 **Walk me through the splits. Patient-level?**
 
 SMIDS is a fixed stratified 70/10/10/10 image split because its release has no patient/source-field IDs. HuSHeM uses five stratified outer folds, but its 15-patient linkage is also unreleased, so I call it image-level and flag possible optimism. Kromp is not run: the public release has no patient map and filename prefixes disagree with the stated patient count. If an author map is supplied, the code creates a true group-disjoint 60/15/10/15 manifest.

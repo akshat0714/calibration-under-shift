@@ -1,12 +1,12 @@
 # Calibration Under Shift: Protocol and Interim Research Report
 
-**Evidence status (2026-08-31):** the implementation, public-release audits, fixed SMIDS/HuSHeM manifests, and synthetic end-to-end engineering check are complete. The planned multi-seed public-data grid is not complete, so this report contains no claimed model finding and no clinically oriented conclusion.
+**Evidence status (2026-09-01):** the implementation, public-release audits, fixed SMIDS/HuSHeM manifests, synthetic end-to-end engineering check, and clean-test sanity matrix are complete. The full shifted evaluation grid is still pending, so the clean results below are interim checks rather than the prespecified headline finding; no clinically oriented conclusion is claimed.
 
 ## Prespecified hypothesis
 
 We predict that calibration error and predictive uncertainty will degrade at lower simulated device-corruption severities than classification accuracy. We will test this by measuring accuracy, macro-F1, ECE, adaptive ECE, NLL, Brier score, uncertainty, selective risk, and conformal coverage across fixed severity ladders applied only at evaluation time. The hypothesis is falsified if prespecified reliability thresholds are not crossed before a five-percentage-point accuracy drop, consistently across datasets and seeds.
 
-> Status: implementation complete; full seeded experiments pending. The hypothesis and thresholds are frozen before the full seeded grid. This is a local prespecification, not an externally registered protocol.
+> Status: implementation and clean-test sanity matrix complete; full shifted evaluation pending. The hypothesis and thresholds were frozen before the full seeded grid. This is a local prespecification, not an externally registered protocol.
 
 ## Motivation
 
@@ -52,14 +52,20 @@ For each severity, device corruptions are averaged equally within a seed before 
 
 ## Interim results
 
-No public-data model result is reported yet. This is deliberate: a one-seed pilot or the bundled synthetic smoke test cannot answer a multi-seed hypothesis, and a partial grid must not be promoted into the “killer figure.” The current verified results are infrastructural:
+Checkpoint 2 verified the multi-seed/fold clean-test sanity matrix. These clean-only estimates do not answer the shifted-grid hypothesis and must not be promoted into the headline figure.
+
+HuSHeM ResNet50 clean accuracy was 86.5% ± 7.8 percentage points across five outer folds (mean ± sample SD). The apparently large fold spread is strongly exposed to small-*n* granularity: the test folds contain 43 images (44 in fold 0), so one additional misclassification moves fold accuracy by 2.27–2.33 points, or about 2.3 points. It should therefore be read as a mixture of learned-model variability, fold-composition variability, and coarse evaluation resolution—not model instability alone. This is a small-data illustration of the broader inter-model/inter-evaluation variability theme emphasized by Thirumalaraju et al. [2], not a directly comparable effect size.
+
+On SMIDS, MobileNetV3-Large and ResNet50 were close on clean accuracy (88.9% ± 1.6 versus 89.7% ± 0.7) and macro-F1 (89.0% ± 1.6 versus 89.7% ± 0.7). This descriptive near-parity makes the compact backbone relevant to research on memory-, latency-, and power-constrained on-device diagnostic deployment, while proving neither statistical equivalence nor deployment readiness.
+
+The remaining verified results are infrastructural:
 
 1. SMIDS and HuSHeM archive hashes match their primary publisher records, all expected images decode, and class counts reproduce the releases.
 2. Fixed manifests are present for SMIDS and all five HuSHeM folds, with a distinct calibration role.
 3. The synthetic workflow completes training, clean-calibration fitting, corrupted inference, MC dropout, APS, OOD scoring, tidy metric output, threshold analysis, Grad-CAM stability, and figure generation.
 4. The automated suite covers deterministic shifts, monotonic endpoint distortion, hand-computable calibration and selective metrics, exchangeable conformal coverage, calibration-only guards, split leakage, model interfaces, attribution, plotting, and end-to-end checkpoint inference.
 
-The report will be updated only after the full seeded SMIDS grid produces `results/metrics.csv`, the prespecified analysis produces `results/thresholds.csv`, and the fresh-clone reproduction drill matches those artifacts.
+The prespecified finding and headline figure will be added only after the full seeded shifted grid produces `results/metrics.csv`, the analysis produces `results/thresholds.csv`, and the fresh-clone reproduction drill matches those artifacts.
 
 ## Limitations
 
@@ -73,7 +79,7 @@ Nothing in this study constitutes clinical validation, a performance guarantee, 
 
 ## Next steps
 
-The immediate next step is to complete the prespecified SMIDS seeds, audit sanity targets before running the expensive grid, and then execute HuSHeM folds. Kromp should remain blocked until its authors provide a patient map and resolve annotation discrepancies. The most informative lab-data extension is a paired acquisition experiment on the same embryo or sperm sample: reference microscope versus smartphone hardware, with patients grouped and a center held out. Corruption parameters could then be fitted to measured image statistics, while calibration and alert thresholds remain frozen before target-center evaluation.
+The immediate next step is to run the prespecified shifted evaluation and analysis grid from the verified clean-test checkpoints. Kromp should remain blocked until its authors provide a patient map and resolve annotation discrepancies. The most informative lab-data extension is a paired acquisition experiment on the same embryo or sperm sample: reference microscope versus smartphone hardware, with patients grouped and a center held out. Corruption parameters could then be fitted to measured image statistics, while calibration and alert thresholds remain frozen before target-center evaluation.
 
 ## References
 
