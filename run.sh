@@ -13,6 +13,7 @@ Usage:
   bash run.sh --train <config.yaml> [extra train_matrix arguments]
   bash run.sh --stage1-clean <mixed-registry.csv> [extra evaluator arguments]
   bash run.sh --eval-only <config.yaml> <checkpoint.pt> [checkpoint.pt ...]
+  bash run.sh --eval-only <config.yaml> --release-checkpoints
   bash run.sh --full-smids
 
 The demo is a synthetic engineering check, not a scientific result. --full-smids
@@ -131,16 +132,41 @@ case "${1:---help}" in
     if [[ "$#" -lt 3 ]]; then usage >&2; exit 2; fi
     config_path="$2"
     shift 2
-    first_checkpoint="$1"
+    checkpoints=()
+    release_mode=false
+    if [[ "$1" == "--release-checkpoints" ]]; then
+      release_mode=true
+      if [[ "$#" -ne 1 ]]; then usage >&2; exit 2; fi
+      release_output="$(
+        "$python_bin" -m scripts.release_checkpoints --config "$config_path"
+      )"
+      while IFS= read -r checkpoint; do
+        [[ -n "$checkpoint" ]] && checkpoints+=("$checkpoint")
+      done <<< "$release_output"
+      if [[ "${#checkpoints[@]}" -eq 0 ]]; then
+        echo "No checkpoints were selected from the Stage-1 release" >&2
+        exit 1
+      fi
+    else
+      checkpoints=("$@")
+    fi
+    first_checkpoint="${checkpoints[0]}"
     eval_metrics="results/eval_metrics.csv"
     eval_figures="results/eval_figures"
-    "$python_bin" -m experiments.run_grid \
-      --config "$config_path" --checkpoints "$@" --output "$eval_metrics" --allow-partial
-    "$python_bin" -m experiments.analyze \
+    grid_args=(
+      --config "$config_path" --checkpoints "${checkpoints[@]}" --output "$eval_metrics"
+    )
+    analysis_args=(
       --metrics "$eval_metrics" \
       --output results/eval_thresholds.csv \
-      --summary results/eval_thresholds.md \
-      --allow-partial
+      --summary results/eval_thresholds.md
+    )
+    if [[ "$release_mode" == false ]]; then
+      grid_args+=(--allow-partial)
+      analysis_args+=(--allow-partial)
+    fi
+    "$python_bin" -m experiments.run_grid "${grid_args[@]}"
+    "$python_bin" -m experiments.analyze "${analysis_args[@]}"
     "$python_bin" -m src.viz.figures \
       --metrics "$eval_metrics" --output-dir "$eval_figures" --uncertainty sd
     "$python_bin" -m experiments.generate_diagnostics \

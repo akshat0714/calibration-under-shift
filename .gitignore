@@ -18,6 +18,7 @@ results/checkpoints/
 results/cache/
 results/runs/
 results/logs/
+results/releases/
 results/checkpoint_registry*
 results/stage1_*
 results/demo_*
