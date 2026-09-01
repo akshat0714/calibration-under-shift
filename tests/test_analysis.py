@@ -8,6 +8,7 @@ from experiments.analyze import (
     aggregate_device_corruptions,
     threshold_analysis,
     validate_complete_grid,
+    write_summary,
 )
 
 
@@ -97,3 +98,93 @@ def test_complete_grid_validation_rejects_missing_condition():
     validate_complete_grid(complete, protocol)
     with pytest.raises(ValueError, match="incomplete raw_softmax/accuracy grid"):
         validate_complete_grid(complete.iloc[:-1], protocol)
+
+
+def test_missing_threshold_crossing_remains_not_estimable(tmp_path):
+    rows = []
+    for seed in (1, 2):
+        clean_values = {
+            ("raw_softmax", "accuracy"): 0.90,
+            ("raw_softmax", "ece"): 0.05,
+            ("raw_softmax", "mean_predictive_entropy"): 0.10,
+            ("raw_softmax", "risk_at_80_coverage"): 0.02,
+            ("aps", "conformal_coverage"): 0.90,
+        }
+        for (method, metric), value in clean_values.items():
+            rows.append(_row(seed, "clean", 0, method, metric, value))
+        for severity in (1, 2):
+            shifted_values = {
+                ("raw_softmax", "accuracy"): 0.88 if severity == 1 else 0.84,
+                ("raw_softmax", "ece"): 0.06,
+                ("raw_softmax", "mean_predictive_entropy"): 0.12,
+                ("raw_softmax", "risk_at_80_coverage"): 0.03,
+                ("aps", "conformal_coverage"): 0.90,
+            }
+            for corruption in ("defocus_blur", "jpeg"):
+                for (method, metric), value in shifted_values.items():
+                    rows.append(_row(seed, corruption, severity, method, metric, value))
+
+    result = threshold_analysis(pd.DataFrame(rows), _protocol())
+    assert result["signal_crossing_severity"].isna().all()
+    assert result["early_warning_gap"].isna().all()
+    assert result["signal_is_earlier"].isna().all()
+
+    summary = tmp_path / "thresholds.md"
+    write_summary(result, summary)
+    assert "| — | 2 | — | — |" in summary.read_text(encoding="utf-8")
+
+
+def test_complete_grid_requires_ensemble_only_for_five_seed_smids_resnet50():
+    protocol = _protocol()
+    protocol["aggregation"].update(
+        {
+            "severities": [1],
+            "ensemble_method_metrics": {
+                "deep_ensemble": "accuracy",
+                "ensemble_aps": "conformal_coverage",
+            },
+        }
+    )
+
+    def base_rows(dataset: str, model: str, seeds: range) -> list[dict]:
+        rows = []
+        for seed in seeds:
+            for corruption, severity in (("clean", 0), ("defocus_blur", 1), ("jpeg", 1)):
+                row = _row(seed, corruption, severity, "raw_softmax", "accuracy", 0.8)
+                row.update({"dataset": dataset, "model": model})
+                rows.append(row)
+        return rows
+
+    xception = pd.DataFrame(base_rows("smids", "xception", range(3)))
+    validate_complete_grid(xception, protocol)
+    unexpected = pd.concat(
+        [
+            xception,
+            pd.DataFrame(
+                [
+                    {
+                        **_row("ensemble", "clean", 0, "deep_ensemble", "accuracy", 0.8),
+                        "dataset": "smids",
+                        "model": "xception",
+                    }
+                ]
+            ),
+        ],
+        ignore_index=True,
+    )
+    with pytest.raises(ValueError, match="unexpected non-prespecified"):
+        validate_complete_grid(unexpected, protocol)
+
+    resnet_rows = base_rows("smids", "resnet50", range(5))
+    with pytest.raises(ValueError, match="incomplete deep_ensemble/accuracy"):
+        validate_complete_grid(pd.DataFrame(resnet_rows), protocol)
+
+    for corruption, severity in (("clean", 0), ("defocus_blur", 1), ("jpeg", 1)):
+        for method, metric in (
+            ("deep_ensemble", "accuracy"),
+            ("ensemble_aps", "conformal_coverage"),
+        ):
+            row = _row("ensemble", corruption, severity, method, metric, 0.8)
+            row.update({"dataset": "smids", "model": "resnet50"})
+            resnet_rows.append(row)
+    validate_complete_grid(pd.DataFrame(resnet_rows), protocol)

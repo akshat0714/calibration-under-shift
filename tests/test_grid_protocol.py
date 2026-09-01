@@ -76,22 +76,33 @@ def test_evaluator_preserves_checkpoint_fold_and_shift_protocol(tmp_path, monkey
         CheckpointEvaluator(checkpoint, config=incompatible, device="cpu")
 
 
-def _fake(fold: int, seed: int, digest: str = "manifest"):
+def _fake(
+    fold: int,
+    seed: int,
+    digest: str = "manifest",
+    *,
+    dataset: str = "folded",
+    model: str = "tiny_cnn",
+):
     return SimpleNamespace(
         seed=seed,
         manifest_digest=digest,
-        model=SimpleNamespace(backbone_name="tiny_cnn"),
+        model=SimpleNamespace(backbone_name=model),
         config={
-            "dataset": {"name": "folded", "num_classes": 2, "fold": fold},
-            "model": {"backbone": "tiny_cnn", "input_size": 32},
+            "dataset": {"name": dataset, "num_classes": 2, "fold": fold},
+            "model": {"backbone": model, "input_size": 32},
         },
     )
 
 
-def test_ensemble_groups_same_fold_distinct_seeds_only():
-    evaluators = [_fake(0, 11), _fake(1, 11), _fake(0, 13)]
+def test_ensemble_groups_only_exact_five_member_smids_resnet50():
+    evaluators = [
+        *(_fake(0, seed, dataset="smids", model="resnet50") for seed in range(11, 16)),
+        *(_fake(0, seed, dataset="smids", model="xception") for seed in range(11, 14)),
+        *(_fake(1, seed, dataset="smids", model="resnet50") for seed in range(11, 15)),
+    ]
     groups = {frozenset(group) for group in ensemble_group_indices(evaluators)}
-    assert groups == {frozenset({0, 2}), frozenset({1})}
+    assert groups == {frozenset(range(5))}
 
     with pytest.raises(ValueError, match="duplicate seeds"):
         ensemble_group_indices([_fake(0, 11), _fake(0, 11)])

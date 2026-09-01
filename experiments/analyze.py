@@ -22,6 +22,10 @@ REQUIRED_COLUMNS = {
     "value",
 }
 
+PRESPECIFIED_ENSEMBLE_DATASET = "smids"
+PRESPECIFIED_ENSEMBLE_MODEL = "resnet50"
+PRESPECIFIED_ENSEMBLE_MEMBERS = 5
+
 
 def validate_complete_grid(metrics: pd.DataFrame, protocol: dict[str, Any]) -> None:
     """Require every prespecified condition and method for each replicate."""
@@ -60,11 +64,33 @@ def validate_complete_grid(metrics: pd.DataFrame, protocol: dict[str, Any]) -> N
                 )
 
     ensemble_required = protocol["aggregation"].get("ensemble_method_metrics", {})
+    ensemble_rows = work.loc[work["seed"].astype(str) == "ensemble"]
+    unexpected_ensembles = ensemble_rows.loc[
+        (ensemble_rows["dataset"] != PRESPECIFIED_ENSEMBLE_DATASET)
+        | (ensemble_rows["model"] != PRESPECIFIED_ENSEMBLE_MODEL)
+    ]
+    if not unexpected_ensembles.empty:
+        identities = sorted(
+            {
+                (str(row.dataset), str(row.model))
+                for row in unexpected_ensembles[["dataset", "model"]].itertuples(index=False)
+            }
+        )
+        raise ValueError(f"unexpected non-prespecified deep-ensemble rows: {identities}")
     base_replicates = raw.loc[raw["seed"].astype(str) != "ensemble"]
     for group_key, group in base_replicates.groupby(["dataset", "model", "fold"]):
-        if group["seed"].nunique() < 2:
-            continue
         dataset, model, fold = group_key
+        if (dataset, model) != (
+            PRESPECIFIED_ENSEMBLE_DATASET,
+            PRESPECIFIED_ENSEMBLE_MODEL,
+        ):
+            continue
+        member_count = group["seed"].nunique()
+        if member_count != PRESPECIFIED_ENSEMBLE_MEMBERS:
+            raise ValueError(
+                "prespecified SMIDS ResNet50 ensemble requires exactly "
+                f"{PRESPECIFIED_ENSEMBLE_MEMBERS} members; found {member_count}"
+            )
         for method, metric in ensemble_required.items():
             selected = work.loc[
                 (work["dataset"] == dataset)
@@ -194,7 +220,7 @@ def threshold_analysis(metrics: pd.DataFrame, protocol: dict[str, Any]) -> pd.Da
                     "clean_accuracy": accuracy_clean,
                     "accuracy_drop_severity": accuracy_severity,
                     "early_warning_gap": gap,
-                    "signal_is_earlier": bool(gap > 0) if np.isfinite(gap) else False,
+                    "signal_is_earlier": bool(gap > 0) if np.isfinite(gap) else None,
                 }
             )
     return pd.DataFrame(outputs)
@@ -227,10 +253,15 @@ def write_summary(thresholds: pd.DataFrame, path: Path) -> None:
                 "—" if pd.isna(row.accuracy_drop_severity) else f"{row.accuracy_drop_severity:g}"
             )
             gap = "—" if pd.isna(row.early_warning_gap) else f"{row.early_warning_gap:g}"
+            earlier = (
+                "—"
+                if pd.isna(row.signal_is_earlier)
+                else ("yes" if bool(row.signal_is_earlier) else "no")
+            )
             lines.append(
                 f"| {row.dataset} | {row.model} | {row.signal_method}/{row.signal_metric} | "
                 f"{signal_severity} | {accuracy_severity} | {gap} | "
-                f"{'yes' if row.signal_is_earlier else 'no'} |"
+                f"{earlier} |"
             )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
