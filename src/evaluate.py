@@ -19,6 +19,7 @@ from src.data.datasets import ManifestImageDataset, load_manifest
 from src.data.transforms import build_transform, preprocessing_from_model_config
 from src.models.build import VisionClassifier, build_model
 from src.shifts.corruptions import make_corruption
+from src.shifts.severity import corruption_protocol_digest
 from src.utils import load_config, set_seed
 
 
@@ -75,6 +76,7 @@ class CheckpointEvaluator:
         manifest_path = Path(data_config["manifest"])
         manifest_bytes = manifest_path.read_bytes()
         self.manifest_digest = hashlib.sha256(manifest_bytes).hexdigest()
+        self.corruption_protocol_sha256 = corruption_protocol_digest()
         expected_manifest_digest = checkpoint.get("manifest_sha256")
         if (
             expected_manifest_digest is not None
@@ -94,6 +96,7 @@ class CheckpointEvaluator:
                 "preprocessing": preprocessing_from_model_config(model_config),
             },
             "evaluation": self.config.get("evaluation", {}),
+            "corruption_protocol_sha256": self.corruption_protocol_sha256,
         }
         fingerprint.update(
             json.dumps(inference_config, sort_keys=True, default=str).encode("utf-8")

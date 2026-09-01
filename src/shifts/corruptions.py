@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import io
 from collections.abc import Callable
+from numbers import Integral
 
 import cv2
 import numpy as np
@@ -70,10 +71,16 @@ def _gaussian_noise(array: np.ndarray, sigma: float, rng: np.random.Generator) -
 
 def _shot_noise(array: np.ndarray, photons: float, rng: np.random.Generator) -> np.ndarray:
     normalized = array.astype(np.float32) / 255.0
-    # Signal-dependent Poisson noise approximates photon statistics. Keeping mean
-    # brightness fixed separates photon noise from the illumination corruption.
-    noisy = rng.poisson(normalized * photons).astype(np.float32) / photons
-    return np.clip(noisy, 0.0, 1.0) * 255.0
+    # This is a post-demosaic proxy: sample signal-dependent Poisson noise from
+    # luminance, then apply the same luminance residual to all RGB channels.  It
+    # avoids the rainbow speckle produced by independently sampling each channel
+    # while preserving chromatic structure.  The Poisson draw is unbiased before
+    # clipping; clipping at the public image boundary can shift the final mean.
+    luminance_weights = np.asarray([0.2126, 0.7152, 0.0722], dtype=np.float32)
+    luminance = normalized @ luminance_weights
+    noisy_luminance = rng.poisson(luminance * photons).astype(np.float32) / photons
+    luminance_residual = (noisy_luminance - luminance)[..., None]
+    return np.clip(normalized + luminance_residual, 0.0, 1.0) * 255.0
 
 
 def _jpeg(array: np.ndarray, quality: int, _rng: np.random.Generator) -> np.ndarray:
@@ -142,13 +149,21 @@ def corrupt(
     """Apply one registered corruption and return an RGB PIL image.
 
     ``severity=0`` is the clean identity condition. For severities 1--5, the same
-    seed fixes all stochastic structure, allowing paired comparisons by severity.
+    seed makes each condition reproducible and fixes nuisance choices such as the
+    motion angle and illumination direction. Test images stay paired across the
+    ladder; Poisson draws are deterministic per condition but not coupled across
+    different count scales.
     """
 
+    canonical = canonical_name(name)
+    if isinstance(severity, bool) or not isinstance(severity, Integral):
+        raise ValueError("severity must be an integer from 0 through 5")
+    severity = int(severity)
+    if severity not in range(0, 6):
+        raise ValueError("severity must be an integer from 0 through 5")
     array = _rgb_array(image)
     if severity == 0:
         return _pil(array.copy())
-    canonical = canonical_name(name)
     parameter = parameter_for(canonical, severity)
     parameter = _scale_spatial_parameter(canonical, parameter, array.shape)
     rng = np.random.default_rng(seed)

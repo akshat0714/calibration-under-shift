@@ -11,6 +11,7 @@ import torch
 from experiments.run_grid import ensemble_group_indices, validate_checkpoint_matrix
 from src.evaluate import CheckpointEvaluator
 from src.models.build import build_model
+from src.shifts.severity import CORRUPTION_PARAMETERS
 
 
 def _config(tmp_path: Path, fold: int) -> dict:
@@ -39,7 +40,7 @@ def _config(tmp_path: Path, fold: int) -> dict:
     }
 
 
-def test_evaluator_preserves_checkpoint_fold_against_base_yaml(tmp_path):
+def test_evaluator_preserves_checkpoint_fold_and_shift_protocol(tmp_path, monkeypatch):
     pd.DataFrame(
         {
             "path": ["fold-0.png", "fold-1.png"],
@@ -65,6 +66,10 @@ def test_evaluator_preserves_checkpoint_fold_against_base_yaml(tmp_path):
 
     assert evaluator.config["dataset"]["fold"] == 1
     assert set(evaluator.manifest["fold"]) == {1}
+    original_cache_path = evaluator._cache_path("test", "motion_blur", 1)
+    monkeypatch.setitem(CORRUPTION_PARAMETERS, "motion_blur", (3, 5, 7, 9, 11))
+    changed_protocol = CheckpointEvaluator(checkpoint, config=base_config, device="cpu")
+    assert changed_protocol._cache_path("test", "motion_blur", 1) != original_cache_path
     incompatible = copy.deepcopy(base_config)
     incompatible["model"]["mean"] = [0.4, 0.5, 0.5]
     with pytest.raises(ValueError, match="model.mean"):

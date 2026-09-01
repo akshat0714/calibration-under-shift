@@ -14,7 +14,7 @@ This repository implements a prespecified, leakage-resistant study of calibratio
 
 | Check | Outcome | Evidence |
 |---|---:|---|
-| Automated tests | 103 passing | shifts, metrics, scaling, conformal, data leakage, models, Grad-CAM, figures, and end-to-end smoke training |
+| Automated tests | 117 passing | shifts, metrics, scaling, conformal, data leakage, models, Grad-CAM, figures, and end-to-end smoke training |
 | SMIDS release audit | 3,000/3,000 images decoded | expected 1,021/1,005/974 class counts; no corrupt or exact-duplicate files |
 | HuSHeM release audit | 216/216 images decoded | expected 54/53/57/52 class counts; no corrupt or exact-duplicate files |
 | Kromp release audit | 2,344/2,344 images decoded | patient map absent; 15 exact-duplicate groups; one conflicting and one missing Gardner label |
@@ -46,17 +46,21 @@ The engine follows an ImageNet-C-style sensitivity design but maps each corrupti
 | Corruption | Physical mechanism | Severity 1 → 5 at a 224 px short side |
 |---|---|---|
 | Defocus blur | lower-NA phone optics or autofocus miss | Gaussian σ 0.5, 1, 2, 3, 5 px |
-| Motion blur | handheld capture without a fixed stage | kernel length 3, 5, 9, 13, 17 |
+| Motion blur | ideal linear exposure-smear proxy for handheld capture | 224-px-reference kernel length 5, 11, 19, 31, 45 px |
 | Gaussian noise | small-CMOS read noise | σ 0.02, 0.04, 0.08, 0.12, 0.18 on [0,1] |
-| Shot noise | photon-limited low-light acquisition | photon scale 60, 25, 12, 5, 3 |
+| Shot noise | post-demosaic proxy for photon-limited low-light acquisition | effective luminance count scale 4,096, 1,024, 256, 64, 16 |
 | JPEG | lossy smartphone encoding/transfer | quality 80, 60, 40, 25, 12 |
-| Down–up resampling | lower magnification or sensor density | factor 1.25, 1.5, 2, 3, 4 |
+| Down–up resampling | spatial-resolution or sensor-density loss | area-downsample factor 1.5, 2.25, 3.5, 5.5, 8; bilinear restoration |
 | Gamma + white balance | light source and phone ISP variation | gamma 0.85→0.50 or reciprocal; channel gain ±5%→±25% |
+
+Severity levels are ordinal sensitivity-analysis settings, not measurements mapped to any named device or acquisition condition.
 
 Every corruption is `corrupt(image, name, severity, seed)`: same input and seed produce identical RGB output, severity 0 is an identity condition, and corruption callbacks are rejected on the training split.
 Pixel-space blur and motion parameters are scaled by the decoded image's shorter
 side relative to 224 px, so one nominal severity does not mean a different relative
 kernel merely because the public SMIDS images have different native dimensions.
+Regenerate the displayed held-out sample with its fixed manifest row, seed, and
+machine-readable provenance sidecar using `bash run.sh --corruption-grid`.
 
 ## Methods
 
@@ -115,7 +119,7 @@ Direct entry points remain available:
   --checkpoint results/checkpoints/<checkpoint>.pt
 ```
 
-Training runs write the resolved configuration, seed, Git revision, environment, curves, and metrics under `results/runs/<run_id>/`; checkpoint evaluation embeds the saved training identity in every tidy row. Inference caches are keyed by checkpoint bytes, manifest bytes, split, corruption, and severity.
+Training runs write the resolved configuration, seed, Git revision, environment, curves, and metrics under `results/runs/<run_id>/`; checkpoint evaluation embeds the saved training identity in every tidy row. Inference caches are keyed by checkpoint bytes, manifest bytes, corruption-protocol digest, split, corruption, and severity.
 
 ## Repository map
 

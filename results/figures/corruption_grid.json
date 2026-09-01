@@ -1,0 +1,77 @@
+{
+  "config": "configs/smids_resnet50.yaml",
+  "corruption_protocol_sha256": "f9d825de07eeda22bf294c5ea66def1ea386e7a6d63a1a6281e28948c9b361c8",
+  "corruption_seed": 1729,
+  "figure_sha256": "faecf900eda625f35453a3698fcf252edbdf0fd2104567c1d25cd47bcf9a9210",
+  "manifest": "data/splits/smids.csv",
+  "manifest_sha256": "ce3c1a90df7674579ac807bec9026f805a82e68f96ce8474b4e35c7b1c006da2",
+  "parameters": {
+    "defocus_blur": [
+      0.5,
+      1.0,
+      2.0,
+      3.0,
+      5.0
+    ],
+    "gaussian_noise": [
+      0.02,
+      0.04,
+      0.08,
+      0.12,
+      0.18
+    ],
+    "illumination": [
+      [
+        0.85,
+        0.05
+      ],
+      [
+        0.75,
+        0.1
+      ],
+      [
+        0.65,
+        0.15
+      ],
+      [
+        0.58,
+        0.2
+      ],
+      [
+        0.5,
+        0.25
+      ]
+    ],
+    "jpeg": [
+      80,
+      60,
+      40,
+      25,
+      12
+    ],
+    "motion_blur": [
+      5,
+      11,
+      19,
+      31,
+      45
+    ],
+    "resample": [
+      1.5,
+      2.25,
+      3.5,
+      5.5,
+      8.0
+    ],
+    "shot_noise": [
+      4096.0,
+      1024.0,
+      256.0,
+      64.0,
+      16.0
+    ]
+  },
+  "sample_path": "SMIDS/Normal_Sperm/Normal_Sperm (1007).bmp",
+  "sample_role": "test",
+  "sample_sha256": "0c965b22b2127ebecd51ccac22ccaedaea4e9c2edf2c79f8d6864bd6ac9616e1"
+}

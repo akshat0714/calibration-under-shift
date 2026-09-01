@@ -6,6 +6,7 @@ usage() {
 Usage:
   bash run.sh --setup
   bash run.sh --demo
+  bash run.sh --corruption-grid
   bash run.sh --download <smids|hushem|kromp|all>
   bash run.sh --prepare <smids|hushem>
   bash run.sh --audit-kromp
@@ -93,6 +94,10 @@ case "${1:---help}" in
       --samples 4 \
       --device cpu
     echo "Synthetic demo completed. Do not report its metrics as scientific results."
+    ;;
+  --corruption-grid)
+    require_environment
+    "$python_bin" -m scripts.generate_corruption_grid
     ;;
   --download)
     bash scripts/download_data.sh "${2:-all}"

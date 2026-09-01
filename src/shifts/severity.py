@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
+from numbers import Integral
+
+CORRUPTION_PROTOCOL_VERSION = "2"
+
 CORRUPTION_PARAMETERS: dict[str, tuple[float | int | tuple[float, float], ...]] = {
     "defocus_blur": (0.5, 1.0, 2.0, 3.0, 5.0),
-    "motion_blur": (3, 5, 9, 13, 17),
+    "motion_blur": (5, 11, 19, 31, 45),
     "gaussian_noise": (0.02, 0.04, 0.08, 0.12, 0.18),
-    "shot_noise": (60.0, 25.0, 12.0, 5.0, 3.0),
+    "shot_noise": (4096.0, 1024.0, 256.0, 64.0, 16.0),
     "jpeg": (80, 60, 40, 25, 12),
-    "resample": (1.25, 1.5, 2.0, 3.0, 4.0),
+    "resample": (1.5, 2.25, 3.5, 5.5, 8.0),
     "illumination": (
         (0.85, 0.05),
         (0.75, 0.10),
@@ -36,7 +42,7 @@ PHYSICAL_MECHANISMS = {
     "defocus_blur": "lower numerical-aperture phone optics or autofocus error",
     "motion_blur": "handheld capture without a fixed microscope stage",
     "gaussian_noise": "read noise from a small CMOS sensor",
-    "shot_noise": "photon-limited acquisition under low illumination",
+    "shot_noise": "luminance-correlated photon noise after demosaicing",
     "jpeg": "lossy smartphone image encoding and transfer",
     "resample": "lower magnification or sensor pixel density",
     "illumination": "light-source spectrum and phone image-signal-processor variation",
@@ -58,6 +64,9 @@ def parameter_for(name: str, severity: int):
     """Return the registered parameter for a 1-indexed severity level."""
 
     canonical = canonical_name(name)
+    if isinstance(severity, bool) or not isinstance(severity, Integral):
+        raise ValueError("severity must be an integer from 1 through 5")
+    severity = int(severity)
     if severity not in range(1, 6):
         raise ValueError("severity must be an integer from 1 through 5")
     return CORRUPTION_PARAMETERS[canonical][severity - 1]
@@ -65,3 +74,14 @@ def parameter_for(name: str, severity: int):
 
 def corruption_names() -> tuple[str, ...]:
     return tuple(CORRUPTION_PARAMETERS)
+
+
+def corruption_protocol_digest() -> str:
+    """Hash the versioned ladder registry for cache and result provenance."""
+
+    payload = {
+        "version": CORRUPTION_PROTOCOL_VERSION,
+        "parameters": CORRUPTION_PARAMETERS,
+    }
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()

@@ -7,3 +7,4 @@
 5. Temperature/vector scaling and conformal thresholds are fit only on rows whose manifest split is `calibration`; the implementation rejects any other split.
 6. Report uncertainty across seeds or folds, keep negative and ambiguous results, and make no clinical claims from public proxy data or simulated corruptions.
 7. Raw data, checkpoints, secrets, and machine-specific absolute paths are never committed.
+8. Any corruption-algorithm change must bump `CORRUPTION_PROTOCOL_VERSION`; any numeric ladder change is captured automatically by the registry digest, which invalidates stale inference caches. Regenerate the fixed corruption grid before evaluating checkpoints so its visual record and provenance match the active protocol.

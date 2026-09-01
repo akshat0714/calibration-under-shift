@@ -165,6 +165,7 @@ def evaluate_checkpoint(
             "severity": severity,
             "n_samples": len(bundle.labels),
             "checkpoint": str(evaluator.checkpoint_path),
+            "corruption_protocol_sha256": evaluator.corruption_protocol_sha256,
         }
         raw_probabilities = bundle.probabilities
         current_msp = max_softmax_uncertainty(bundle.logits)
@@ -285,6 +286,7 @@ def evaluate_checkpoint(
             "severity": 1,
             "n_samples": len(shifted.labels),
             "checkpoint": str(evaluator.checkpoint_path),
+            "corruption_protocol_sha256": evaluator.corruption_protocol_sha256,
         }
         rows.extend(
             _rows(
@@ -374,6 +376,7 @@ def evaluate_deep_ensemble(
             "severity": severity,
             "n_samples": len(labels),
             "checkpoint": "|".join(str(item.checkpoint_path) for item in evaluators),
+            "corruption_protocol_sha256": evaluators[0].corruption_protocol_sha256,
         }
         metrics = _probability_metrics(
             stats["probabilities"],
