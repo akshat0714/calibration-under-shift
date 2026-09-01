@@ -25,16 +25,21 @@ jobs:
           cache: pip
       - name: Install pinned dependencies
         run: python -m pip install -r requirements.txt
-      - name: Lint
-        run: ruff check .
+      - name: Lint, format, and shell syntax
+        run: |
+          ruff check .
+          ruff format --check .
+          bash -n run.sh scripts/download_data.sh
       - name: Unit and smoke tests
         run: python -m pytest -q
       - name: One-command synthetic integration
         run: CALIBRATION_PYTHON=python bash run.sh --demo
       - name: Restart-and-run walkthrough notebook
         run: |
-          cp results/demo_metrics.csv results/metrics.csv
-          CALIBRATION_NOTEBOOK_ALLOW_DEMO=1 python - <<'PY'
+          CALIBRATION_NOTEBOOK_ALLOW_DEMO=1 \
+          CALIBRATION_NOTEBOOK_METRICS=results/demo_metrics.csv \
+          CALIBRATION_NOTEBOOK_THRESHOLDS=results/demo_thresholds.csv \
+          python - <<'PY'
           from pathlib import Path
           import nbformat
           from nbclient import NotebookClient
