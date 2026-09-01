@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import io
 from collections.abc import Callable
+from dataclasses import dataclass
 from numbers import Integral
 
 import cv2
@@ -173,14 +174,22 @@ def corrupt(
     return _pil(output)
 
 
+@dataclass(frozen=True)
+class CorruptionCallback:
+    """Picklable deterministic callback for multiprocessing data loaders."""
+
+    name: str
+    severity: int
+    base_seed: int = 0
+
+    def __call__(self, image: Image.Image, index: int) -> Image.Image:
+        # The large odd multiplier separates adjacent samples without Python's salted hash.
+        sample_seed = (self.base_seed + index * 1_000_003) % (2**32)
+        return corrupt(image, self.name, self.severity, sample_seed)
+
+
 def make_corruption(name: str, severity: int, base_seed: int = 0):
     """Create a dataset callback with deterministic per-sample seeds."""
 
     canonical = canonical_name(name)
-
-    def apply(image: Image.Image, index: int) -> Image.Image:
-        # The large odd multiplier separates adjacent samples without Python's salted hash.
-        sample_seed = (base_seed + index * 1_000_003) % (2**32)
-        return corrupt(image, canonical, severity, sample_seed)
-
-    return apply
+    return CorruptionCallback(canonical, severity, base_seed)

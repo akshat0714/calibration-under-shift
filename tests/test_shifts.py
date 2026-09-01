@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import numpy as np
+import pandas as pd
 import pytest
 from PIL import Image
+from torch.utils.data import DataLoader
 
-from src.shifts.corruptions import corrupt
+from src.data.datasets import ManifestImageDataset
+from src.shifts.corruptions import corrupt, make_corruption
 from src.shifts.severity import (
     CORRUPTION_PARAMETERS,
     corruption_protocol_digest,
@@ -60,6 +63,27 @@ def test_corruption_is_deterministic_valid_rgb(textured_image, name, severity):
 def test_clean_condition_is_identity(textured_image):
     clean = np.asarray(corrupt(textured_image, "jpeg", 0, seed=1))
     assert np.array_equal(clean, np.asarray(textured_image))
+
+
+def test_corruption_callback_runs_in_spawned_data_loader_worker(tmp_path, textured_image):
+    image_path = tmp_path / "sample.png"
+    textured_image.save(image_path)
+    dataset = ManifestImageDataset(
+        pd.DataFrame([{"path": str(image_path), "label": 0, "split": "test"}]),
+        split="test",
+        corruption=make_corruption("jpeg", severity=2, base_seed=19),
+    )
+    loader = DataLoader(
+        dataset,
+        batch_size=None,
+        num_workers=1,
+        multiprocessing_context="spawn",
+    )
+
+    sample = next(iter(loader))
+
+    assert sample["image"].mode == "RGB"
+    assert sample["label"] == 0
 
 
 @pytest.mark.parametrize("name", sorted(CORRUPTION_PARAMETERS))
