@@ -4,7 +4,7 @@ This file is a defense guide, not a substitute for reading the source. Before a 
 
 ## Five-minute walkthrough
 
-**0:00–0:40 — question.** “The project asks whether confidence and other reliability signals fail before top-line accuracy when diagnostic image quality moves toward low-cost smartphone conditions. That matters because aggregate accuracy cannot tell an embryologist which individual image needs re-acquisition or review.”
+**0:00–0:40 — question.** “The project tested whether confidence and other reliability signals fail before top-line accuracy when diagnostic image quality moves toward low-cost smartphone conditions. The thresholds and aggregation were frozen first: a reliability signal counted as an early warning only if it crossed before raw accuracy lost more than five points.”
 
 **0:40–1:20 — why this lab.** “MD-nets framed device/lossy domain shift. Your replicate-model study then found Kendall's W around 0.35, critical errors around 15%, and greater error variance at another center. I treated ensemble disagreement, calibration, and selective prediction as possible early-warning layers rather than another accuracy benchmark.”
 
@@ -12,9 +12,9 @@ This file is a defense guide, not a substitute for reading the source. Before a 
 
 **2:15–3:15 — methods.** “I compare raw and temperature-scaled ECE/NLL/Brier, a five-model ensemble and MC dropout, APS coverage/set size, risk–coverage and failure-detection AUROC, energy and Mahalanobis shift scores, and quantitative Grad-CAM stability. The key clinical translation is abstention: rank uncertain images and ask whether reviewing a bounded fraction recovers lower risk.”
 
-**3:15–4:20 — result.** Replace this paragraph only after the full grid: state clean mean±SD, the first accuracy-drop severity, the first reliability-signal severity, the early-warning gap, and the strongest per-corruption exception. Do not use the synthetic demo or one-seed pilot as evidence.
+**3:15–4:20 — result.** “The prespecified early-warning hypothesis was not supported. In all 10 comparisons where both thresholds crossed, ECE, predictive entropy, selective risk, or APS coverage crossed at the same severity as the five-point accuracy drop or later; six further signals never crossed. Accuracy crossed at severity 2 for SMIDS MobileNetV3 and severity 3 for SMIDS ResNet50, Xception, and HuSHeM ResNet50. The exploratory per-corruption analysis also found no early crossing among 58 observed pairs. Clean-fitted temperature scaling transferred inconsistently at severity 5: it lowered mean ECE on every SMIDS backbone by 0.003–0.023 but raised HuSHeM ECE by 0.014.”
 
-**4:20–5:00 — limitation and next step.** “These are public proxies and simulated shifts. The independent-channel Gaussian baseline is deliberately the least physical corruption, while the fixed-direction illumination proxy is also much simpler than a real phone ISP. I would validate severity against paired captures of the same specimen on reference and smartphone hardware, group by patient, hold out a center, and freeze calibration before target-center testing.”
+**4:20–5:00 — limitation and next step.** “These are public proxies and simulated shifts. The independent-channel Gaussian baseline is deliberately the least physical corruption, while the fixed-direction illumination proxy is also much simpler than a real phone ISP. A post-hoc limitation is that a relative 2× threshold is harder to cross from a high clean baseline—for example, HuSHeM clean ECE was 0.132—but I did not change the frozen primary analysis. I would validate severity against paired captures of the same specimen on reference and smartphone hardware, group by patient, hold out a center, and freeze calibration and alarm definitions before target-center testing.”
 
 ## Module map
 
@@ -84,6 +84,34 @@ In-distribution classifiers often produce a large logit and therefore more negat
 
 ## Likely questions and crisp answers
 
+**What did the study actually find?**
+
+Under the frozen equal-corruption protocol, none of the 10 reliability comparisons with both crossings observed crossed before the five-point raw-accuracy drop; six of the 16 signals never crossed at all. The early-warning hypothesis was not supported at these thresholds on SMIDS and HuSHeM. That is a bounded null: these aggregate signals were not earlier alarms here, not proof that uncertainty methods are useless.
+
+**Was the null just an artifact of averaging corruptions?**
+
+The prespecified primary analysis averages the seven device corruptions equally within each seed/fold before aggregating replicates. As a secondary/exploratory check, I applied the same thresholds separately to each corruption. None of 58 comparisons with both crossings observed was early; 54 other signal/dataset/backbone/corruption combinations had no signal crossing. Those 112 comparisons are correlated and this was not a multiple-testing analysis, so I treat it as descriptive support, not a stronger primary claim.
+
+**Did temperature scaling transfer under shift?**
+
+Inconsistently. Scalar temperature was fitted once on the clean calibration split and then frozen. At severity 5, mean temperature-minus-raw ECE was −0.023 for SMIDS ResNet50, −0.013 for MobileNetV3-Large, and −0.003 for Xception, but +0.014 for HuSHeM ResNet50. This agrees in spirit with Ovadia et al.'s result that post-hoc calibration fitted in distribution can fall short under shift, but it is not a replication of their benchmark.
+
+**Were the uncertainty scores useless if they were not early alarms?**
+
+No. The primary alarm question and per-sample ranking question are different. At 80% coverage, secondary energy-based selection recovered 3.6–5.2 accuracy points at severities 3–4 across the four dataset/backbone paths. The SMIDS ResNet50 ensemble recovered 5.2 points at severity 3 and 5.4 at severity 4. Failure-detection AUROC nevertheless weakened toward severity 5—for raw softmax, from about 0.81–0.84 at severity 1 to 0.66–0.70 at severity 5—so triage became less reliable as shift intensified.
+
+**What happened to conformal prediction?**
+
+APS coverage and set size moved differently across paths. Clean-to-severity-5 coverage changed from 0.977→0.865 for SMIDS ResNet50, 0.958→0.760 for MobileNetV3-Large, 0.987→0.869 for Xception, and 0.958→0.942 for HuSHeM ResNet50; mean set size increased in every path. HuSHeM's small coverage loss came with the largest set-size growth, +0.655 classes. This is why I report both quantities and never treat a large set as a confident answer.
+
+**Could another threshold make the result positive?**
+
+Possibly, but that would be a different study. A post-hoc observation is that relative 2× thresholds are harder for signals with high clean baselines: HuSHeM clean ECE was 0.132, so crossing required exceeding both 0.264 and a +0.02 increase. I did not change the threshold or the null claim. Absolute-threshold and AUROC-style alarm protocols are future work that should be frozen before a new evaluation.
+
+**What is the practical implication for a low-cost device?**
+
+Do not treat an uncertainty dashboard by itself as a degradation alarm. It may still support sample triage, but this experiment supplied no prespecified lead time over accuracy. A defensible deployment needs paired-device validation on the same specimens, patient/source grouping, held-out-center testing, and monitoring tied to a prospectively defined action.
+
 **Why is HuSHeM's ±7.8-point fold spread so large?**
 
 The statistic is the sample SD of clean accuracy across five ResNet50 outer-fold models, not a variance estimate for an individual image. Four test folds contain 43 images and one contains 44, so one additional misclassification moves fold accuracy by 2.27–2.33 percentage points—about 2.3 points. The 86.5% ± 7.8 result therefore combines learned-model variability, fold composition, and coarse small-*n* evaluation resolution; it is not evidence of model instability alone. I connect it to Thirumalaraju et al.'s broader inter-model/inter-evaluation variability theme, not to their effect size as if the studies were directly comparable.
@@ -114,7 +142,7 @@ It depends on how confidence is used. If probabilities trigger embryo ranking, a
 
 **What is least physically realistic?**
 
-The independent per-channel Gaussian-noise baseline, deliberately. I retained the ImageNet-C convention for benchmark comparability, but independent RGB residuals are not a faithful post-demosaic phone-sensor model. I therefore redesigned shot noise as the more physically motivated counterpart: it samples a Poisson perturbation from luminance and shares that residual across RGB channels, removing implausible rainbow speckle while preserving color structure. The illumination proxy is simplified too: at the fixed seed it darkens midtones and suppresses red while increasing green and blue, creating a green/teal cast. A real phone ISP also includes raw Bayer sampling, demosaicing, local denoising, sharpening, tone mapping, and auto-exposure. I would estimate device statistics from paired captures and test whether synthetic and real shift induce the same metric and attribution ordering.
+The independent per-channel Gaussian-noise baseline, deliberately. I retained the ImageNet-C convention for benchmark comparability, but independent RGB residuals are not a faithful post-demosaic phone-sensor model. I therefore redesigned shot noise as the more physically motivated counterpart: it samples a Poisson perturbation from luminance and shares that residual across RGB channels, removing implausible rainbow speckle while preserving color structure. The illumination proxy is simplified too: at the fixed seed it darkens midtones and suppresses red while increasing green and blue, creating a green/teal cast. A real phone ISP also includes raw Bayer sampling, demosaicing, local denoising, sharpening, tone mapping, and auto-exposure. I would use the lab's paired-device OSF data to estimate real device statistics, compare matched specimens, and test whether synthetic and real shift induce the same metric and attribution ordering.
 
 **How would this behave on Embryoscope-versus-smartphone data?**
 
@@ -130,7 +158,7 @@ The primary experiment isolates monitoring under unseen deployment shift. Corrup
 
 **What did you build versus generate?**
 
-Give the literal answer. A defensible version is: “I used AI assistance for scaffolding, test generation, and review, but I validated every invariant, traced every data caveat to primary metadata, ran the code, and can derive the methods. The Kromp blocker is an example where I rejected the requested automation because the source data could not support the claim.” Never imply hand authorship of generated code.
+Give the literal answer. A defensible version is: “I used AI assistance for scaffolding, test generation, and review, but I validated every invariant, traced every data caveat to primary metadata, ran the code, and can derive the methods. The Kromp blocker is an example where I rejected the requested automation because the source data could not support the claim. The result taught me to separate aggregate alarm timing from per-sample ranking utility: the frozen early-warning hypothesis failed even though selective prediction still recovered accuracy at a fixed review budget. It also made clear that reproducible artifact identity and shutdown/release operations are part of research quality, not packaging afterthoughts.” Never imply hand authorship of generated code.
 
 ## Questions for Manoj and Prudhvi
 
@@ -138,3 +166,11 @@ Give the literal answer. A defensible version is: “I used AI assistance for sc
 2. Do you have an internal patient/image map for the public Kromp release, or would you recommend a different embryo dataset for patient-grouped external work?
 3. For paired clinical-versus-smartphone images, which device statistics best track the lab's 4→1 quality scale: optical resolution, signal-to-noise, compression, color, or a learned domain distance?
 4. When onboarding a new fertility center, does the lab currently reserve a site-specific calibration set, use domain adaptation, or require a fully untouched center-level acceptance test?
+
+## Result and source traceability
+
+- Actual grid: `results/metrics.csv`; frozen crossings: `results/thresholds.csv`; threshold definitions and aggregation order: `configs/analysis_protocol.yaml`; clean sanity results: `results/stage1_clean_summary.csv`. Synthetic demo and pilot outputs are excluded from every answer above.
+- Thirumalaraju P et al., “Stability and reliability of artificial intelligence models in embryo selection for in vitro fertilization,” *Fertility and Sterility* 125(2), 277–286 (2026; online 2025), [doi:10.1016/j.fertnstert.2025.08.021](https://doi.org/10.1016/j.fertnstert.2025.08.021), [PubMed/PMC](https://pubmed.ncbi.nlm.nih.gov/40876725/). The connection here is the paper's inter-model/inter-evaluation variability theme, not a directly comparable effect size.
+- Ovadia Y et al., “Can You Trust Your Model's Uncertainty? Evaluating Predictive Uncertainty Under Dataset Shift,” NeurIPS 2019, [official proceedings](https://proceedings.neurips.cc/paper/2019/hash/8558cb408c1d76621371888657d2eb1d-Abstract.html).
+
+No result in this guide is a clinical claim, performance guarantee, or recommended decision policy.
