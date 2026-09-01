@@ -2,7 +2,7 @@
 
 Last audited: 2026-08-31. Check an item only after verifying it in the release candidate or public repository; synthetic-demo success is not a substitute for public-data completion.
 
-- [ ] Public GitHub repository created as `calibration-under-shift`; GPL-3.0 recognized; remote URL recorded
+- [x] Public GitHub repository created as `calibration-under-shift`; GPL-3.0 recognized; remote URL recorded
 - [x] Exact dependency pins install in Python 3.11
 - [x] SMIDS and HuSHeM downloads match publisher checksums
 - [x] Kromp v3 archive matches Figshare MD5 and its full release defects are audited
@@ -20,8 +20,8 @@ Last audited: 2026-08-31. Check an item only after verifying it in the release c
 - [ ] Headline, reliability, risk–coverage, failure, conformal, and attribution figures generated from real results
 - [ ] README and REPORT status language replaced with the verified result, including negative findings
 - [ ] Fresh clone on a clean Linux/Colab environment reproduces metrics and figures
-- [ ] GitHub Actions green on the public commit; badge points at the real repository
-- [ ] No raw data, large checkpoints, secrets, absolute paths, or synthetic metrics committed
-- [ ] Public repository link opens in an incognito window
+- [x] GitHub Actions green on the public commit; badge points at the real repository
+- [x] No raw data, large checkpoints, secrets, absolute paths, or synthetic metrics committed
+- [x] Public repository link opens without authentication
 - [ ] Five-minute walkthrough rehearsed twice; every module re-read
 - [ ] Email link and wording updated, then sent on their existing thread

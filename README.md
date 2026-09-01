@@ -1,5 +1,7 @@
 # Calibration Under Shift
 
+[![CI](https://github.com/akshat0714/calibration-under-shift/actions/workflows/ci.yml/badge.svg)](https://github.com/akshat0714/calibration-under-shift/actions/workflows/ci.yml)
+
 **Thesis:** diagnostic-image confidence may become unreliable before accuracy visibly collapses as image quality degrades toward smartphone-microscope conditions.
 
 This repository implements a prespecified, leakage-resistant study of calibration, uncertainty, conformal prediction, selective prediction, input-shift detection, and attribution stability under simulated diagnostic-imaging shift. It is intentionally honest about its current evidence: SMIDS and HuSHeM have been checksum-verified, audited, and split; the complete synthetic engineering workflow passes; the multi-seed public-data experiment is not yet complete, so no headline empirical claim is made here.
