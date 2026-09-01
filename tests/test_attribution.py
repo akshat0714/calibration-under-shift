@@ -1,12 +1,21 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+from types import SimpleNamespace
+
 import numpy as np
 import pandas as pd
 import pytest
 import torch
 from torch import nn
 
-from experiments.run_attribution import _stratified_indices
+from experiments.run_attribution import (
+    _normalize_methods,
+    _stratified_indices,
+    _validate_severities,
+    run_attribution,
+)
 from src.attribution.gradcam import GradCAM, GradCAMPlusPlus, overlay_heatmap
 from src.attribution.stability import (
     batch_stability,
@@ -152,3 +161,161 @@ def test_qualitative_attribution_indices_are_class_stratified():
     )()
     indices = _stratified_indices(evaluator, 6)
     assert evaluator.manifest.iloc[indices]["label"].value_counts().to_dict() == {0: 2, 1: 2, 2: 2}
+
+
+class TinySuiteCNN(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.conv = nn.Conv2d(3, 2, kernel_size=1, bias=False)
+        self.activation = nn.ReLU()
+        self.pool = nn.AdaptiveAvgPool2d(1)
+        self.head = nn.Linear(2, 3, bias=False)
+        with torch.no_grad():
+            self.conv.weight.copy_(
+                torch.tensor(
+                    [
+                        [[[1.0]], [[0.5]], [[0.25]]],
+                        [[[0.25]], [[0.5]], [[1.0]]],
+                    ]
+                )
+            )
+            self.head.weight.copy_(torch.tensor([[1.0, 0.1], [0.2, 0.8], [-0.5, -0.5]]))
+
+    @property
+    def gradcam_target_layer(self) -> nn.Module:
+        return self.activation
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        features = self.activation(self.conv(inputs))
+        return self.head(self.pool(features).flatten(1))
+
+
+class TinySuiteDataset:
+    def __init__(self, severity: int) -> None:
+        self.severity = severity
+
+    def __len__(self) -> int:
+        return 6
+
+    def __getitem__(self, index: int) -> dict[str, object]:
+        image = torch.zeros(3, 8, 8)
+        start = index % 3
+        image[:, 1 + start : 4 + start, 2:6] = 0.2 + 0.1 * index
+        if self.severity:
+            image = torch.roll(image, shifts=self.severity // 2, dims=-1)
+        return {
+            "image": image,
+            "label": index % 3,
+            "path": f"class-{index % 3}/sample-{index}.png",
+        }
+
+
+def _tiny_suite_evaluator(tmp_path: Path):
+    checkpoint = tmp_path / "checkpoint.pt"
+    checkpoint.write_bytes(b"real-checkpoint-fixture")
+    manifest = pd.DataFrame(
+        {
+            "path": [f"class-{index % 3}/sample-{index}.png" for index in range(6)],
+            "label": [index % 3 for index in range(6)],
+            "split": ["test"] * 6,
+        }
+    )
+    return SimpleNamespace(
+        manifest=manifest,
+        device=torch.device("cpu"),
+        model=TinySuiteCNN(),
+        config={
+            "dataset": {
+                "name": "fixture",
+                "class_names": ["zero", "one", "two"],
+            },
+            "model": {
+                "backbone": "tiny_fixture",
+                "mean": [0.0, 0.0, 0.0],
+                "std": [1.0, 1.0, 1.0],
+                "interpolation": "bilinear",
+                "crop_pct": 1.0,
+            },
+        },
+        checkpoint_path=checkpoint,
+        checkpoint_sha256="a" * 64,
+        manifest_digest="b" * 64,
+        corruption_protocol_sha256="c" * 64,
+        seed=2025,
+        run_id="fixture-run",
+        loader=lambda split, corruption, severity: SimpleNamespace(
+            dataset=TinySuiteDataset(severity)
+        ),
+    )
+
+
+def test_stage4_suite_writes_both_methods_fixed_samples_and_provenance(tmp_path, monkeypatch):
+    evaluator = _tiny_suite_evaluator(tmp_path)
+    output = tmp_path / "attribution"
+    monkeypatch.setattr("experiments.run_attribution.git_revision", lambda _root: "d" * 40)
+
+    frame = run_attribution(
+        evaluator,
+        "defocus_blur",
+        [0, 2, 4],
+        6,
+        output,
+        stability_sample_count=0,
+        batch_size=3,
+        method="both",
+        figure_severities=[0, 2, 4],
+    )
+
+    assert len(frame) == 36
+    assert set(frame["method"]) == {"gradcam", "gradcam++"}
+    assert set(frame["severity"]) == {0, 2, 4}
+    assert frame["checkpoint"].str.startswith("external:checkpoint.pt@sha256:").all()
+    assert not frame["checkpoint"].map(lambda value: Path(value).is_absolute()).any()
+    assert frame.groupby(["method", "severity"])["path"].nunique().eq(6).all()
+    assert frame.loc[frame["severity"] == 0, "spearman"].dropna().eq(1.0).all()
+    assert frame.loc[frame["severity"] == 0, "top_percent_iou"].dropna().eq(1.0).all()
+    samples = pd.read_csv(output / "attribution_samples.csv")
+    assert samples["label"].value_counts().to_dict() == {0: 2, 1: 2, 2: 2}
+    summary = pd.read_csv(output / "attribution_stability_summary.csv")
+    assert len(summary) == 6
+    assert (summary["n_samples"] == 6).all()
+    provenance = json.loads((output / "attribution_provenance.json").read_text())
+    assert provenance["evaluation_git_revision"] == "d" * 40
+    assert provenance["protocol"]["methods"] == ["gradcam", "gradcam++"]
+    assert provenance["protocol"]["qualitative_severities"] == [0, 2, 4]
+    assert provenance["protocol"]["heatmap_resolution"] == "native final spatial feature map"
+    for name in (
+        "attribution_stability.csv",
+        "attribution_stability_summary.csv",
+        "attribution_samples.csv",
+        "attribution_grid.png",
+        "attribution_stability.png",
+    ):
+        assert (output / name).is_file()
+        assert len(provenance["outputs"][name]["sha256"]) == 64
+
+
+def test_stage4_contract_rejects_out_of_scope_inputs(tmp_path, monkeypatch):
+    evaluator = _tiny_suite_evaluator(tmp_path)
+    with pytest.raises(ValueError, match="between 4 and 6"):
+        run_attribution(evaluator, "defocus_blur", [0, 2, 4], 3, tmp_path / "out")
+    with pytest.raises(ValueError, match="include clean"):
+        _validate_severities([1, 2, 3], [1, 2])
+    with pytest.raises(ValueError, match="subset"):
+        _validate_severities([0, 2], [0, 4])
+    with pytest.raises(ValueError, match="both"):
+        _normalize_methods("unsupported")
+    monkeypatch.setattr(
+        "experiments.run_attribution.require_clean_git_revision", lambda *_args, **_kwargs: "d" * 40
+    )
+    with pytest.raises(ValueError, match="both CAM methods"):
+        run_attribution(
+            evaluator,
+            "defocus_blur",
+            list(range(6)),
+            6,
+            tmp_path / "strict",
+            method="gradcam",
+            registry_path=tmp_path / "registry.csv",
+            require_clean_revision=True,
+        )
