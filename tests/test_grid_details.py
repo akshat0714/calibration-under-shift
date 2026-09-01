@@ -7,6 +7,8 @@ from types import SimpleNamespace
 import numpy as np
 
 from experiments.run_grid import (
+    _detail_filename,
+    _provenance_path,
     _write_detail_json,
     evaluate_checkpoint,
     evaluate_deep_ensemble,
@@ -109,6 +111,27 @@ def test_checkpoint_details_include_provenance_reliability_and_risk_curves(tmp_p
     encoded = output.read_text(encoding="utf-8")
     assert "NaN" not in encoded
     assert json.loads(encoded)["checkpoint"]["run_id"] == "toy-run"
+
+
+def test_checkpoint_provenance_paths_are_portable(tmp_path):
+    repository = tmp_path / "repository"
+    checkpoint = repository / "results" / "checkpoints" / "member.pt"
+    checkpoint.parent.mkdir(parents=True)
+    checkpoint.write_bytes(b"checkpoint")
+
+    assert _provenance_path(checkpoint, repository) == "results/checkpoints/member.pt"
+    assert _provenance_path(tmp_path / "elsewhere" / "member.pt", repository) == (
+        "external/member.pt"
+    )
+    assert not Path(_provenance_path(checkpoint, repository)).is_absolute()
+
+
+def test_detail_filename_sanitizes_checkpoint_provided_run_id():
+    assert _detail_filename("safe-run_1") == "safe-run_1.json"
+    unsafe = _detail_filename("../../outside")
+    assert unsafe.startswith("outside-")
+    assert unsafe.endswith(".json")
+    assert "/" not in unsafe
 
 
 def test_deep_ensemble_details_cover_only_the_five_member_smids_resnet_group(tmp_path):

@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import math
+import re
 from pathlib import Path
 from typing import Any
 
@@ -42,6 +44,29 @@ DETAIL_SCHEMA_VERSION = 1
 PRESPECIFIED_ENSEMBLE_DATASET = "smids"
 PRESPECIFIED_ENSEMBLE_MODEL = "resnet50"
 PRESPECIFIED_ENSEMBLE_MEMBERS = 5
+
+
+def _provenance_path(path: str | Path, root: Path | None = None) -> str:
+    """Return a portable checkpoint identifier without leaking a host path."""
+
+    value = Path(path)
+    repository = (root or Path.cwd()).resolve()
+    try:
+        return value.resolve().relative_to(repository).as_posix()
+    except ValueError:
+        # The checkpoint hash remains the immutable identity. For files outside the
+        # repository, retain a useful basename while avoiding a machine-specific path.
+        return f"external/{value.name}"
+
+
+def _detail_filename(run_id: str) -> str:
+    """Map a checkpoint-provided run id to one safe, deterministic JSON filename."""
+
+    if re.fullmatch(r"[A-Za-z0-9._-]+", run_id):
+        return f"{run_id}.json"
+    slug = re.sub(r"[^A-Za-z0-9._-]+", "-", run_id).strip(".-") or "run"
+    digest = hashlib.sha256(run_id.encode("utf-8")).hexdigest()[:8]
+    return f"{slug}-{digest}.json"
 
 
 def _entropy(probabilities: np.ndarray) -> np.ndarray:
@@ -237,7 +262,7 @@ def evaluate_checkpoint(
         "evaluation_git_revision": evaluation_revision,
         "device": str(evaluator.device),
         "checkpoint": {
-            "path": str(evaluator.checkpoint_path),
+            "path": _provenance_path(evaluator.checkpoint_path),
             "sha256": evaluator.checkpoint_sha256,
             "run_id": evaluator.run_id,
             "dataset": config["dataset"]["name"],
@@ -309,7 +334,7 @@ def evaluate_checkpoint(
             "severity": severity,
             "n_samples": len(bundle.labels),
             "run_id": evaluator.run_id,
-            "checkpoint": str(evaluator.checkpoint_path),
+            "checkpoint": _provenance_path(evaluator.checkpoint_path),
             "manifest_sha256": evaluator.manifest_digest,
             "corruption_protocol_sha256": evaluator.corruption_protocol_sha256,
             "evaluation_git_revision": evaluation_revision,
@@ -467,7 +492,7 @@ def evaluate_checkpoint(
             "severity": 1,
             "n_samples": len(shifted.labels),
             "run_id": evaluator.run_id,
-            "checkpoint": str(evaluator.checkpoint_path),
+            "checkpoint": _provenance_path(evaluator.checkpoint_path),
             "manifest_sha256": evaluator.manifest_digest,
             "corruption_protocol_sha256": evaluator.corruption_protocol_sha256,
             "evaluation_git_revision": evaluation_revision,
@@ -573,7 +598,7 @@ def evaluate_deep_ensemble(
             {
                 "run_id": evaluator.run_id,
                 "seed": evaluator.seed,
-                "checkpoint": str(evaluator.checkpoint_path),
+                "checkpoint": _provenance_path(evaluator.checkpoint_path),
                 "checkpoint_sha256": evaluator.checkpoint_sha256,
             }
             for evaluator in evaluators
@@ -611,7 +636,9 @@ def evaluate_deep_ensemble(
             "severity": severity,
             "n_samples": len(labels),
             "run_id": "ensemble-smids-resnet50",
-            "checkpoint": "|".join(str(item.checkpoint_path) for item in evaluators),
+            "checkpoint": "|".join(
+                _provenance_path(item.checkpoint_path) for item in evaluators
+            ),
             "manifest_sha256": evaluators[0].manifest_digest,
             "corruption_protocol_sha256": evaluators[0].corruption_protocol_sha256,
             "evaluation_git_revision": evaluation_revision,
@@ -779,7 +806,7 @@ def main() -> None:
         condition_bundles.append(bundles)
         calibration_bundles.append(calibration)
         rows.extend(checkpoint_rows)
-        _write_detail_json(details, args.details_dir / f"{evaluator.run_id}.json")
+        _write_detail_json(details, args.details_dir / _detail_filename(evaluator.run_id))
         _write_metrics(rows, progress_output)
         print(f"evaluated {evaluator.checkpoint_path}")
     for indices in ensemble_groups:
