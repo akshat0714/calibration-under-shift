@@ -165,6 +165,7 @@ def run_group(
     *,
     details_dir: Path,
     device: str,
+    num_workers: int | None,
     root: Path,
     python: str,
 ) -> None:
@@ -184,6 +185,8 @@ def run_group(
         "--device",
         device,
     ]
+    if num_workers is not None:
+        command.extend(["--num-workers", str(num_workers)])
     subprocess.run(command, cwd=root, check=True)
 
 
@@ -266,6 +269,7 @@ def run_stage2_matrix(
     parts_dir: Path = PARTS_DIR,
     details_dir: Path = DETAILS_DIR,
     device: str = "auto",
+    num_workers: int | None = None,
     root: Path = Path("."),
     python: str = sys.executable,
 ) -> pd.DataFrame:
@@ -277,6 +281,9 @@ def run_stage2_matrix(
     protocol_path = _absolute(root, PROTOCOL_PATH).resolve()
     allowed_generated = (output, parts_dir, details_dir)
 
+    if num_workers is not None and num_workers < 0:
+        raise ValueError("num_workers must be non-negative")
+
     revision = require_clean_git_revision(root, allowed_untracked=allowed_generated)
     groups, expected_details = build_canonical_groups(registry_path, parts_dir, root)
     for group in groups:
@@ -284,6 +291,7 @@ def run_stage2_matrix(
             group,
             details_dir=details_dir,
             device=device,
+            num_workers=num_workers,
             root=root,
             python=python,
         )
@@ -321,6 +329,11 @@ def main() -> None:
     parser.add_argument("--parts-dir", type=Path, default=PARTS_DIR)
     parser.add_argument("--details-dir", type=Path, default=DETAILS_DIR)
     parser.add_argument("--device", default="auto")
+    parser.add_argument(
+        "--num-workers",
+        type=int,
+        help="override evaluation data-loader workers (scheduling only)",
+    )
     args = parser.parse_args()
     metrics = run_stage2_matrix(
         registry_path=args.registry,
@@ -328,6 +341,7 @@ def main() -> None:
         parts_dir=args.parts_dir,
         details_dir=args.details_dir,
         device=args.device,
+        num_workers=args.num_workers,
     )
     print(
         f"wrote {len(metrics)} validated Stage-2 metric rows to {args.output}; "

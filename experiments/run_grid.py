@@ -255,6 +255,7 @@ def evaluate_checkpoint(
             "calibration_bins": n_bins,
             "conformal_alpha": alpha,
             "risk_coverage_target": target_coverage,
+            "num_workers": int(evaluation.get("num_workers", 0)),
             "corruption_seed": int(evaluation.get("corruption_seed", 1729)),
             "prior_shift": evaluation.get("prior_shift"),
             "mc_dropout_passes": (
@@ -736,6 +737,11 @@ def _parse_args() -> argparse.Namespace:
         help="per-checkpoint and ensemble provenance, reliability-bin, and risk-coverage JSONs",
     )
     parser.add_argument("--device", default="auto")
+    parser.add_argument(
+        "--num-workers",
+        type=int,
+        help="override evaluation data-loader workers (scheduling only)",
+    )
     parser.add_argument("--skip-mc-dropout", action="store_true")
     parser.add_argument("--allow-partial", action="store_true")
     return parser.parse_args()
@@ -745,7 +751,11 @@ def main() -> None:
     args = _parse_args()
     if args.skip_mc_dropout and not args.allow_partial:
         raise SystemExit("--skip-mc-dropout requires --allow-partial")
+    if args.num_workers is not None and args.num_workers < 0:
+        raise SystemExit("--num-workers must be non-negative")
     config = load_config(args.config)
+    if args.num_workers is not None:
+        config.setdefault("evaluation", {})["num_workers"] = args.num_workers
     evaluators = [
         CheckpointEvaluator(
             checkpoint,

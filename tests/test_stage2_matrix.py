@@ -123,6 +123,7 @@ def test_orchestrator_runs_groups_in_order_and_publishes_only_after_strict_valid
         parts_dir=parts_dir,
         details_dir=details_dir,
         device="cuda",
+        num_workers=0,
         root=repository,
         python="python-under-test",
     )
@@ -136,6 +137,7 @@ def test_orchestrator_runs_groups_in_order_and_publishes_only_after_strict_valid
     ]
     assert all(command[0] == "python-under-test" for command in commands)
     assert all(command[command.index("--device") + 1] == "cuda" for command in commands)
+    assert all(command[command.index("--num-workers") + 1] == "0" for command in commands)
     assert all(
         Path(command[command.index("--details-dir") + 1]) == details_dir for command in commands
     )
@@ -174,6 +176,14 @@ def test_missing_checkpoint_fails_before_any_group_runs(tmp_path, monkeypatch):
         stage2.run_stage2_matrix(registry_path=registry, root=repository)
 
     assert called is False
+
+
+def test_negative_worker_override_is_rejected_before_evaluation(tmp_path, monkeypatch):
+    repository = Path(__file__).resolve().parents[1]
+    monkeypatch.setattr(stage2, "require_clean_git_revision", lambda *args, **kwargs: "a" * 40)
+
+    with pytest.raises(ValueError, match="non-negative"):
+        stage2.run_stage2_matrix(root=repository, num_workers=-1)
 
 
 def test_git_revision_gate_rejects_tracked_and_unrelated_untracked_changes(tmp_path):
