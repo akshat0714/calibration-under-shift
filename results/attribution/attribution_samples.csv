@@ -1,0 +1,7 @@
+manifest_test_index,path,label
+0,SMIDS/Normal_Sperm/Normal_Sperm (1007).bmp,0
+102,SMIDS/Abnormal_Sperm/Abnormal_Sperm (10).bmp,1
+203,SMIDS/Non-Sperm/Non-Sperm (118).bmp,2
+1,SMIDS/Normal_Sperm/Normal_Sperm (1011).bmp,0
+103,SMIDS/Abnormal_Sperm/Abnormal_Sperm (1001).bmp,1
+204,SMIDS/Non-Sperm/Non-Sperm (137).bmp,2

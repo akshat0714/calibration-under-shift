@@ -1,0 +1,84 @@
+{
+  "analysis": "Stage 4 attribution",
+  "checkpoint": {
+    "path": "results/checkpoints/smids-resnet50-seed2025-20260901T093642Z-364bd06871.pt",
+    "run_id": "20260901T093642Z-364bd06871",
+    "seed": 2025,
+    "sha256": "999e6af4f82903698b1c53913ec19723c8a2951e87843aedb3d0501887879bf0"
+  },
+  "config": {
+    "path": "configs/smids_resnet50.yaml",
+    "sha256": "5bbd8b04cb95fb92e4e7c4c176bf16a7ad2d0da25000ea9745ad25550d9ae1b7"
+  },
+  "corruption_protocol_sha256": "f9d825de07eeda22bf294c5ea66def1ea386e7a6d63a1a6281e28948c9b361c8",
+  "dataset": {
+    "manifest_sha256": "ce3c1a90df7674579ac807bec9026f805a82e68f96ce8474b4e35c7b1c006da2",
+    "name": "smids",
+    "test_samples_evaluated": 300
+  },
+  "device": "mps",
+  "evaluation_git_revision": "b52921ab8ff2260823c26a9a47961984e6a88811",
+  "outputs": {
+    "attribution_grid.png": {
+      "path": "results/attribution/attribution_grid.png",
+      "sha256": "30e5551362ebe9ec1714ded0d2bdaabfb03884f63ae74ba04f7b59fcdb34875f"
+    },
+    "attribution_samples.csv": {
+      "path": "results/attribution/attribution_samples.csv",
+      "sha256": "122aa76e957c7ea117a488c34a3cfb811445882911c0225ea89466ac909edc76"
+    },
+    "attribution_stability.csv": {
+      "path": "results/attribution/attribution_stability.csv",
+      "sha256": "67f85e16da3df78b8639bf817322e0eb271ae59036362817e7003f4e0430dd97"
+    },
+    "attribution_stability.png": {
+      "path": "results/attribution/attribution_stability.png",
+      "sha256": "f53ade2a509222f79adb6763204642e81a6e937b65fac36ea0b42eab65acc1c3"
+    },
+    "attribution_stability_summary.csv": {
+      "path": "results/attribution/attribution_stability_summary.csv",
+      "sha256": "d03b078ddff4326739df34b624ef9f6ab460e402e5c837180ab6d84feec42c6b"
+    }
+  },
+  "protocol": {
+    "corruption": "defocus_blur",
+    "heatmap_resolution": "native final spatial feature map",
+    "methods": [
+      "gradcam",
+      "gradcam++"
+    ],
+    "qualitative_paths_sha256": "122aa76e957c7ea117a488c34a3cfb811445882911c0225ea89466ac909edc76",
+    "qualitative_sample_count": 6,
+    "qualitative_selection": "deterministic class-interleaved manifest order",
+    "qualitative_severities": [
+      0,
+      2,
+      4
+    ],
+    "quantitative_sample_count_per_method": 300,
+    "quantitative_severities": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "target_definition": "clean predicted class, fixed for the same image at every severity",
+    "top_saliency_fraction": 0.2
+  },
+  "registry": {
+    "path": "results/checkpoint_registry-stage1.csv",
+    "release_training_git_revision": "65cee06fbf23294b358f35569d2cf2b32b46cbab",
+    "row": {
+      "checkpoint": "results/checkpoints/smids-resnet50-seed2025-20260901T093642Z-364bd06871.pt",
+      "dataset": "smids",
+      "fold": null,
+      "model": "resnet50",
+      "run_id": "20260901T093642Z-364bd06871",
+      "seed": 2025
+    },
+    "sha256": "7945d52ba31f626a213e156671d96c2d6433751679af4c014135be4c30167849"
+  },
+  "torch_version": "2.7.1"
+}
