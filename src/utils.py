@@ -50,11 +50,11 @@ def load_config(path: str | Path) -> dict[str, Any]:
 
 
 def git_revision(root: str | Path = ".") -> str:
-    """Return the current Git revision plus a dirty-tree marker."""
+    """Return the full current Git revision plus a dirty-tree marker."""
 
     try:
         revision = subprocess.check_output(
-            ["git", "rev-parse", "--short", "HEAD"],
+            ["git", "rev-parse", "--verify", "HEAD"],
             cwd=root,
             text=True,
             stderr=subprocess.DEVNULL,

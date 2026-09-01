@@ -193,7 +193,11 @@ def run_group(
 def _read_group_part(group: CanonicalGroup, revision: str) -> pd.DataFrame:
     if not group.output.is_file():
         raise FileNotFoundError(f"Stage-2 group output was not written: {group.output}")
-    part = pd.read_csv(group.output, low_memory=False)
+    part = pd.read_csv(
+        group.output,
+        low_memory=False,
+        dtype={"evaluation_git_revision": "string"},
+    )
     if len(part) != group.expected_rows:
         raise ValueError(
             f"{group.dataset}/{group.model} row count is {len(part)}, "

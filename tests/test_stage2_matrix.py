@@ -10,6 +10,7 @@ import pytest
 
 from experiments.evaluate_clean_matrix import EXPECTED_STAGE1_MEMBERS
 from experiments.run_grid import KEY_COLUMNS
+from src.utils import git_revision
 
 stage2 = importlib.import_module("experiments.run_stage2_matrix")
 
@@ -197,6 +198,7 @@ def test_git_revision_gate_rejects_tracked_and_unrelated_untracked_changes(tmp_p
 
     revision = stage2.require_clean_git_revision(tmp_path)
     assert len(revision) == 40
+    assert git_revision(tmp_path) == revision
 
     generated = tmp_path / "results/parts/group.csv"
     generated.parent.mkdir(parents=True)
