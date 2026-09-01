@@ -1,0 +1,44 @@
+dataset:
+  name: smids
+  root: data/raw/smids/files
+  manifest: data/splits/smids.csv
+  num_classes: 3
+  class_names: [normal, abnormal, non-sperm]
+model:
+  backbone: xception
+  pretrained: true
+  dropout: 0.20
+  input_size: 299
+  mean: [0.5, 0.5, 0.5]
+  std: [0.5, 0.5, 0.5]
+  interpolation: bicubic
+  crop_pct: 0.8975
+training:
+  seed: 2025
+  seeds: [2025, 2026, 2027]
+  deterministic: true
+  device: auto
+  batch_size: 24
+  num_workers: 4
+  head_epochs: 4
+  finetune_epochs: 20
+  head_lr: 0.001
+  finetune_lr: 0.0001
+  weight_decay: 0.0001
+  patience: 4
+evaluation:
+  batch_size: 24
+  num_workers: 4
+  corruption_seed: 1729
+  corruptions:
+    [defocus_blur, motion_blur, gaussian_noise, shot_noise, jpeg, resample, illumination]
+  severities: [1, 2, 3, 4, 5]
+  calibration_bins: 15
+  conformal_alpha: 0.10
+  mc_dropout_passes: 30
+  risk_coverage_target: 0.80
+  prior_shift: {class_index: 1, multiplier: 2.0, seed: 931}
+outputs:
+  runs_dir: results/runs
+  checkpoints_dir: results/checkpoints
+  cache_dir: results/cache

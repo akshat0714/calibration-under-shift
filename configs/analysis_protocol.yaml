@@ -1,0 +1,32 @@
+# Frozen before the full seeded public-data grid; this is not an external preregistration.
+aggregation:
+  device_corruptions:
+    [defocus_blur, motion_blur, gaussian_noise, shot_noise, jpeg, resample, illumination]
+  severities: [1, 2, 3, 4, 5]
+  required_method_metrics:
+    raw_softmax: accuracy
+    temperature: ece
+    vector_scaling: ece
+    aps: conformal_coverage
+    energy: mean_ood_score
+    mahalanobis: mean_ood_score
+    mc_dropout: accuracy
+  ensemble_method_metrics:
+    deep_ensemble: accuracy
+    ensemble_aps: conformal_coverage
+  order: mean within seed across corruptions, then mean and sample standard deviation across seeds
+  exclude_conditions: [prior_shift, consensus_test]
+thresholds:
+  accuracy_absolute_drop: 0.05
+  ece_relative_increase: 2.0
+  ece_minimum_absolute_increase: 0.02
+  entropy_relative_increase: 2.0
+  entropy_minimum_absolute_increase: 0.05
+  selective_risk_relative_increase: 2.0
+  selective_risk_minimum_absolute_increase: 0.02
+  conformal_target_coverage: 0.90
+  conformal_allowed_shortfall: 0.05
+decision_rule: >
+  A reliability signal is earlier only when its first threshold-crossing severity is
+  numerically lower than the first severity with a five-percentage-point accuracy
+  drop. A missing crossing is reported as missing, never replaced by severity five.

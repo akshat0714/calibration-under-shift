@@ -1,0 +1,45 @@
+dataset:
+  name: hushem
+  root: data/raw/hushem/files
+  manifest: data/splits/hushem.csv
+  num_classes: 4
+  class_names: [normal, tapered, pyriform, amorphous]
+  fold: 0
+  folds: [0, 1, 2, 3, 4]
+model:
+  backbone: resnet50
+  pretrained: true
+  dropout: 0.25
+  input_size: 224
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
+  interpolation: bilinear
+  crop_pct: 0.9655172414
+training:
+  seed: 2025
+  seeds: [2025]
+  deterministic: true
+  device: auto
+  batch_size: 16
+  num_workers: 2
+  head_epochs: 5
+  finetune_epochs: 25
+  head_lr: 0.001
+  finetune_lr: 0.0001
+  weight_decay: 0.0001
+  patience: 5
+evaluation:
+  batch_size: 32
+  num_workers: 2
+  corruption_seed: 1729
+  corruptions:
+    [defocus_blur, motion_blur, gaussian_noise, shot_noise, jpeg, resample, illumination]
+  severities: [1, 2, 3, 4, 5]
+  calibration_bins: 15
+  conformal_alpha: 0.10
+  mc_dropout_passes: 30
+  risk_coverage_target: 0.80
+outputs:
+  runs_dir: results/runs
+  checkpoints_dir: results/checkpoints
+  cache_dir: results/cache

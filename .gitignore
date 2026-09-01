@@ -1,0 +1,30 @@
+.DS_Store
+.env
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# Public datasets and generated model artifacts are intentionally not versioned.
+data/raw/
+data/processed/
+data/demo/
+data/splits/demo.csv
+results/checkpoints/
+results/cache/
+results/runs/
+results/demo_*
+results/demo_figures/
+results/eval_*
+results/pilot_*
+*.pt
+*.pth
+*.ckpt
+
+# Local-only scratch output.
+scratch/
+tmp/

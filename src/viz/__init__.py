@@ -1,0 +1,1 @@
+"""Publication-style figure generation."""

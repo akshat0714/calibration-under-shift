@@ -1,0 +1,43 @@
+# Engineering smoke test only. Synthetic results must not be used as scientific evidence.
+dataset:
+  name: synthetic_demo
+  root: data/demo
+  manifest: data/splits/demo.csv
+  num_classes: 3
+  class_names: [round, tapered, irregular]
+model:
+  backbone: tiny_cnn
+  pretrained: false
+  dropout: 0.20
+  input_size: 64
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
+  interpolation: bilinear
+  crop_pct: 0.875
+training:
+  seed: 2025
+  seeds: [2025, 2026]
+  deterministic: true
+  device: cpu
+  batch_size: 16
+  num_workers: 0
+  head_epochs: 1
+  finetune_epochs: 1
+  head_lr: 0.003
+  finetune_lr: 0.001
+  weight_decay: 0.0001
+  patience: 1
+evaluation:
+  batch_size: 16
+  num_workers: 0
+  corruption_seed: 1729
+  corruptions: [defocus_blur, jpeg]
+  severities: [1, 3]
+  calibration_bins: 5
+  conformal_alpha: 0.10
+  mc_dropout_passes: 3
+  risk_coverage_target: 0.80
+outputs:
+  runs_dir: results/runs
+  checkpoints_dir: results/checkpoints
+  cache_dir: results/cache

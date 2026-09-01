@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install pinned dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Lint
+        run: ruff check .
+      - name: Unit and smoke tests
+        run: python -m pytest -q
+      - name: One-command synthetic integration
+        run: CALIBRATION_PYTHON=python bash run.sh --demo
+      - name: Restart-and-run walkthrough notebook
+        run: |
+          cp results/demo_metrics.csv results/metrics.csv
+          CALIBRATION_NOTEBOOK_ALLOW_DEMO=1 python - <<'PY'
+          from pathlib import Path
+          import nbformat
+          from nbclient import NotebookClient
+
+          path = Path("notebooks/01_walkthrough.ipynb")
+          notebook = nbformat.read(path, as_version=4)
+          NotebookClient(notebook, timeout=120, kernel_name="python3").execute(cwd=str(Path.cwd()))
+          print(f"executed {len(notebook.cells)} cells")
+          PY
