@@ -20,7 +20,7 @@ Last audited: 2026-09-01. Check an item only after verifying it in the release c
 - [x] Headline, reliability, risk–coverage, failure, conformal, and attribution figures generated from real results
 - [x] README and REPORT state the bounded null and mixed temperature-scaling result
 - [x] Fresh full-history clone in a new pinned environment reproduces metrics and figures with one evaluation command
-- [ ] GitHub Actions green on the public commit; badge points at the real repository
+- [x] GitHub Actions green on the public commit; badge points at the real repository
 - [x] No raw data, large checkpoints, secrets, absolute paths, or synthetic metrics committed
 - [x] Public repository link opens without authentication
 - [ ] Five-minute walkthrough rehearsed twice; every module re-read
