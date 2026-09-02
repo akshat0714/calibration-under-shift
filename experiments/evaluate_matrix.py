@@ -1,4 +1,4 @@
-"""Run and strictly merge the four canonical Stage-2 evaluation groups."""
+"""Run and strictly merge the four canonical evaluation groups."""
 
 from __future__ import annotations
 
@@ -15,14 +15,14 @@ from typing import Any
 import pandas as pd
 
 from experiments.analyze import validate_complete_grid
-from experiments.evaluate_clean_matrix import CONFIG_PATHS, validate_stage1_registry
+from experiments.evaluate_clean_matrix import CONFIG_PATHS, validate_checkpoint_registry
 from experiments.run_grid import KEY_COLUMNS
 from src.utils import load_config
 
 REGISTRY_PATH = Path("results/checkpoint_registry-stage1.csv")
 PROTOCOL_PATH = Path("configs/analysis_protocol.yaml")
 OUTPUT_PATH = Path("results/metrics.csv")
-PARTS_DIR = Path("results/stage2_parts")
+PARTS_DIR = Path("results/evaluation_parts")
 DETAILS_DIR = Path("results/evaluation_details")
 
 CANONICAL_GROUP_ORDER = (
@@ -78,7 +78,7 @@ def _is_allowed_untracked(root: Path, raw_path: bytes, allowed: tuple[Path, ...]
 
 
 def require_clean_git_revision(root: Path, *, allowed_untracked: tuple[Path, ...] = ()) -> str:
-    """Return a committed SHA and reject tracked dirt or unrelated untracked files."""
+    """Return a committed SHA and reject tracked changes or unrelated untracked files."""
 
     revision = _git_command(root, "rev-parse", "--verify", "HEAD").stdout.decode("ascii").strip()
     if re.fullmatch(r"[0-9a-f]{40,64}", revision) is None:
@@ -112,9 +112,9 @@ def _checkpoint_path(root: Path, raw_path: Any) -> Path:
 def build_canonical_groups(
     registry_path: Path, parts_dir: Path, root: Path
 ) -> tuple[list[CanonicalGroup], set[str]]:
-    """Validate the exact Stage-1 registry before launching any subprocess."""
+    """Validate the exact checkpoint registry before launching any subprocess."""
 
-    registry = validate_stage1_registry(pd.read_csv(registry_path))
+    registry = validate_checkpoint_registry(pd.read_csv(registry_path))
     missing_checkpoints = sorted(
         str(path)
         for path in (_checkpoint_path(root, value) for value in registry["checkpoint"])
@@ -192,7 +192,7 @@ def run_group(
 
 def _read_group_part(group: CanonicalGroup, revision: str) -> pd.DataFrame:
     if not group.output.is_file():
-        raise FileNotFoundError(f"Stage-2 group output was not written: {group.output}")
+        raise FileNotFoundError(f"evaluation group output was not written at {group.output}")
     part = pd.read_csv(
         group.output,
         low_memory=False,
@@ -243,8 +243,8 @@ def validate_detail_jsons(details_dir: Path, expected_names: set[str], revision:
         missing = sorted(expected_names - observed_names)
         extra = sorted(observed_names - expected_names)
         raise ValueError(
-            f"detail JSON set is not exact; expected_count={EXPECTED_DETAIL_JSONS}, "
-            f"observed_count={len(observed_paths)}, missing={missing}, extra={extra}"
+            f"detail JSON set is not exact. Expected {EXPECTED_DETAIL_JSONS} files and found "
+            f"{len(observed_paths)}. Missing entries are {missing}. Extra entries are {extra}"
         )
     for path in observed_paths:
         with path.open(encoding="utf-8") as handle:
@@ -266,7 +266,7 @@ def atomic_write_metrics(metrics: pd.DataFrame, output: Path) -> None:
         temporary.unlink(missing_ok=True)
 
 
-def run_stage2_matrix(
+def run_evaluation_matrix(
     *,
     registry_path: Path = REGISTRY_PATH,
     output: Path = OUTPUT_PATH,
@@ -304,7 +304,7 @@ def run_stage2_matrix(
     metrics = pd.concat(parts, ignore_index=True)
     if len(metrics) != EXPECTED_TOTAL_ROWS:
         raise ValueError(
-            f"merged Stage-2 row count is {len(metrics)}, expected {EXPECTED_TOTAL_ROWS}"
+            f"merged evaluation row count is {len(metrics)}, expected {EXPECTED_TOTAL_ROWS}"
         )
     reject_duplicate_tidy_keys(metrics)
     if metrics["evaluation_git_revision"].isna().any():
@@ -312,7 +312,8 @@ def run_stage2_matrix(
     revisions = set(metrics["evaluation_git_revision"].dropna().astype(str))
     if revisions != {revision}:
         raise ValueError(
-            f"merged metrics must contain one clean evaluation revision; observed={revisions}"
+            f"merged metrics must contain one clean evaluation revision. "
+            f"Observed revisions are {revisions}"
         )
     validate_detail_jsons(details_dir, expected_details, revision)
     protocol = load_config(protocol_path)
@@ -320,7 +321,8 @@ def run_stage2_matrix(
     final_revision = require_clean_git_revision(root, allowed_untracked=allowed_generated)
     if final_revision != revision:
         raise RuntimeError(
-            f"evaluation revision changed during Stage 2: started {revision}, ended {final_revision}"
+            f"evaluation revision changed during evaluation. It started at {revision} and ended "
+            f"at {final_revision}"
         )
     atomic_write_metrics(metrics, output)
     return metrics
@@ -339,7 +341,7 @@ def main() -> None:
         help="override evaluation data-loader workers (scheduling only)",
     )
     args = parser.parse_args()
-    metrics = run_stage2_matrix(
+    metrics = run_evaluation_matrix(
         registry_path=args.registry,
         output=args.output,
         parts_dir=args.parts_dir,
@@ -348,7 +350,7 @@ def main() -> None:
         num_workers=args.num_workers,
     )
     print(
-        f"wrote {len(metrics)} validated Stage-2 metric rows to {args.output}; "
+        f"wrote {len(metrics)} validated evaluation metric rows to {args.output}. "
         f"detail JSONs={EXPECTED_DETAIL_JSONS}"
     )
 

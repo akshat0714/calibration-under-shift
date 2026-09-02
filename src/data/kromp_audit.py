@@ -124,8 +124,8 @@ def main() -> None:
     manifest.to_csv(args.metadata, index=False)
     save_kromp_sample_grid(manifest, args.root, args.grid)
     print(
-        f"audited {report['images']} images; "
-        f"{len(report['images_without_gardner_annotation'])} unlabeled; "
+        f"audited {report['images']} images. "
+        f"{len(report['images_without_gardner_annotation'])} unlabeled. "
         f"{len(report['silver_conflicting_images'])} conflicting silver labels"
     )
 

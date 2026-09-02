@@ -1,4 +1,4 @@
-"""Fetch, verify, and select the immutable Stage-1 release checkpoints."""
+"""Fetch, verify, and select the immutable release checkpoints."""
 
 from __future__ import annotations
 
@@ -312,7 +312,8 @@ def select_registry_checkpoints(config: dict[str, Any], registry: Path, root: Pa
         missing = sorted(expected - observed, key=str)
         extra = sorted(observed - expected, key=str)
         raise ReleaseCheckpointError(
-            f"release checkpoint matrix is not exact; missing={missing}, extra={extra}"
+            f"release checkpoint matrix is not exact. Missing entries are {missing}. "
+            f"Extra entries are {extra}"
         )
 
     rows_by_identity = {
@@ -337,7 +338,7 @@ def select_registry_checkpoints(config: dict[str, Any], registry: Path, root: Pa
 
 
 def ensure_release(root: Path) -> set[Path]:
-    """Fetch, install if needed, and verify the pinned Stage-1 release once."""
+    """Fetch, install if needed, and verify the pinned checkpoint release once."""
 
     root = root.resolve()
     archive = root / "results/releases" / ARCHIVE_NAME
@@ -378,7 +379,7 @@ def prepare_release_matrix(root: Path) -> list[Path]:
         )
     if len(checkpoints) != 16 or len(set(checkpoints)) != 16:
         raise ReleaseCheckpointError(
-            "release matrix must contain exactly 16 unique checkpoint paths; "
+            "release matrix must contain exactly 16 unique checkpoint paths. "
             f"observed={len(checkpoints)}, unique={len(set(checkpoints))}"
         )
     unverified = sorted(set(checkpoints) - verified)

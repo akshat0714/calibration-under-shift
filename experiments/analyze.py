@@ -60,7 +60,8 @@ def validate_complete_grid(metrics: pd.DataFrame, protocol: dict[str, Any]) -> N
             if actual != expected:
                 missing = sorted(expected - actual)
                 raise ValueError(
-                    f"incomplete {method}/{metric} grid for replicate {key}; missing={missing}"
+                    f"incomplete {method}/{metric} grid for replicate {key}. "
+                    f"Missing entries are {missing}"
                 )
 
     ensemble_required = protocol["aggregation"].get("ensemble_method_metrics", {})
@@ -89,7 +90,7 @@ def validate_complete_grid(metrics: pd.DataFrame, protocol: dict[str, Any]) -> N
         if member_count != PRESPECIFIED_ENSEMBLE_MEMBERS:
             raise ValueError(
                 "prespecified SMIDS ResNet50 ensemble requires exactly "
-                f"{PRESPECIFIED_ENSEMBLE_MEMBERS} members; found {member_count}"
+                f"{PRESPECIFIED_ENSEMBLE_MEMBERS} members but found {member_count}"
             )
         for method, metric in ensemble_required.items():
             selected = work.loc[
@@ -104,7 +105,8 @@ def validate_complete_grid(metrics: pd.DataFrame, protocol: dict[str, Any]) -> N
             if actual & expected != expected:
                 missing = sorted(expected - actual)
                 raise ValueError(
-                    f"incomplete {method}/{metric} ensemble grid for {group_key}; missing={missing}"
+                    f"incomplete {method}/{metric} ensemble grid for {group_key}. "
+                    f"Missing entries are {missing}"
                 )
 
 
@@ -245,16 +247,20 @@ def write_summary(thresholds: pd.DataFrame, path: Path) -> None:
         )
         for row in thresholds.itertuples(index=False):
             signal_severity = (
-                "—"
+                "Not reached"
                 if pd.isna(row.signal_crossing_severity)
                 else f"{row.signal_crossing_severity:g}"
             )
             accuracy_severity = (
-                "—" if pd.isna(row.accuracy_drop_severity) else f"{row.accuracy_drop_severity:g}"
+                "Not reached"
+                if pd.isna(row.accuracy_drop_severity)
+                else f"{row.accuracy_drop_severity:g}"
             )
-            gap = "—" if pd.isna(row.early_warning_gap) else f"{row.early_warning_gap:g}"
+            gap = (
+                "Not applicable" if pd.isna(row.early_warning_gap) else f"{row.early_warning_gap:g}"
+            )
             earlier = (
-                "—"
+                "Not evaluable"
                 if pd.isna(row.signal_is_earlier)
                 else ("yes" if bool(row.signal_is_earlier) else "no")
             )

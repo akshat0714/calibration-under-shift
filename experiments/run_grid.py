@@ -623,7 +623,7 @@ def evaluate_deep_ensemble(
             not np.array_equal(bundle.labels, labels) or not np.array_equal(bundle.paths, paths)
             for bundle in bundles[1:]
         ):
-            # Prior-shift resampling can differ only if configs/seeds were inconsistent;
+            # Prior-shift resampling can differ only if configs or seeds were inconsistent.
             # ordinary device-shift grids must always be paired exactly.
             raise ValueError(f"ensemble sample order differs for {corruption} severity {severity}")
         stats = ensemble_statistics(np.stack([bundle.logits for bundle in bundles]))
@@ -737,7 +737,8 @@ def validate_checkpoint_matrix(
         missing = sorted(expected - observed, key=str)
         extra = sorted(observed - expected, key=str)
         raise ValueError(
-            f"checkpoint matrix is incomplete or unexpected; missing={missing}, extra={extra}. "
+            f"checkpoint matrix is incomplete or unexpected. Missing entries are {missing}. "
+            f"Extra entries are {extra}. "
             "Use --allow-partial only for exploratory noncanonical output."
         )
 

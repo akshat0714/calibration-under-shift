@@ -11,16 +11,16 @@ Usage:
   bash run.sh --prepare <smids|hushem>
   bash run.sh --audit-kromp
   bash run.sh --train <config.yaml> [extra train_matrix arguments]
-  bash run.sh --stage1-clean <mixed-registry.csv> [extra evaluator arguments]
+  bash run.sh --clean-test <mixed-registry.csv> [extra evaluator arguments]
   bash run.sh --eval-only
   bash run.sh --eval-only <config.yaml> <checkpoint.pt> [checkpoint.pt ...]
   bash run.sh --eval-only <config.yaml> --release-checkpoints
   bash run.sh --full-retrain [extra full-retrain arguments]
   bash run.sh --full-smids
 
-The demo is a synthetic engineering check, not a scientific result. --full-smids
-downloads/audits SMIDS, trains the configured ResNet50 seeds from scratch, evaluates
-the full grid, applies preregistered thresholds, and regenerates result figures.
+The demo is a synthetic engineering check, not a scientific result. The --full-smids
+command downloads and audits SMIDS, trains the configured ResNet50 seeds from scratch,
+evaluates the full grid, applies prespecified thresholds, and regenerates the figures.
 EOF
 }
 
@@ -123,7 +123,7 @@ case "${1:---help}" in
     shift 2
     "$python_bin" -m experiments.train_matrix --config "$config_path" "$@"
     ;;
-  --stage1-clean)
+  --clean-test)
     require_environment
     if [[ -z "${2:-}" ]]; then usage >&2; exit 2; fi
     registry_path="$2"
@@ -151,7 +151,7 @@ case "${1:---help}" in
         [[ -n "$checkpoint" ]] && checkpoints+=("$checkpoint")
       done <<< "$release_output"
       if [[ "${#checkpoints[@]}" -eq 0 ]]; then
-        echo "No checkpoints were selected from the Stage-1 release" >&2
+        echo "No checkpoints were selected from the checkpoint release" >&2
         exit 1
       fi
     else

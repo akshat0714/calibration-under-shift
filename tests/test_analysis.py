@@ -131,7 +131,9 @@ def test_missing_threshold_crossing_remains_not_estimable(tmp_path):
 
     summary = tmp_path / "thresholds.md"
     write_summary(result, summary)
-    assert "| — | 2 | — | — |" in summary.read_text(encoding="utf-8")
+    assert "| Not reached | 2 | Not applicable | Not evaluable |" in summary.read_text(
+        encoding="utf-8"
+    )
 
 
 def test_complete_grid_requires_ensemble_only_for_five_seed_smids_resnet50():

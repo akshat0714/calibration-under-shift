@@ -24,7 +24,9 @@ results/stage1_*
 results/demo_*
 results/demo_figures/
 results/evaluation_details/*
-results/stage2_parts/
+results/evaluation_parts/
+results/analysis/
+results/figures/analysis_overview.png
 results/eval_*
 results/pilot_*
 results/reproduction/

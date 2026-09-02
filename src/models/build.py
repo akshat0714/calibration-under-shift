@@ -130,7 +130,7 @@ def build_model(
             ),
         )
         return VisionClassifier(backbone, 32, num_classes, dropout, "tiny", "tiny_cnn")
-    raise ValueError("unknown backbone; choose resnet50, xception, or mobilenet_v3_large")
+    raise ValueError("unknown backbone. Choose resnet50, xception, or mobilenet_v3_large")
 
 
 def set_backbone_trainable(model: VisionClassifier, trainable: bool) -> None:

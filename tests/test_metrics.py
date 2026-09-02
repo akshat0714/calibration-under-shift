@@ -20,7 +20,7 @@ from src.metrics.selective import (
 def test_hand_computable_calibration_metrics():
     probabilities = np.array([[0.8, 0.2], [0.4, 0.6]])
     labels = np.array([0, 1])
-    # Both are correct; mean confidence is 0.7.
+    # Both are correct. Mean confidence is 0.7.
     assert expected_calibration_error(probabilities, labels, n_bins=1) == pytest.approx(0.3)
     assert adaptive_calibration_error(probabilities, labels, n_bins=1) == pytest.approx(0.3)
     assert brier_score(probabilities, labels) == pytest.approx(0.20)

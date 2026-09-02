@@ -15,8 +15,8 @@ import pandas as pd
 import torch
 from matplotlib.axes import Axes
 
-from experiments.evaluate_clean_matrix import validate_stage1_registry
-from experiments.run_stage2_matrix import require_clean_git_revision
+from experiments.evaluate_clean_matrix import validate_checkpoint_registry
+from experiments.evaluate_matrix import require_clean_git_revision
 from scripts.release_checkpoints import (
     INTERNAL_MANIFEST,
     TRAINING_SHA,
@@ -140,16 +140,16 @@ def _registry_row(
     evaluator: CheckpointEvaluator,
     root: Path,
 ) -> dict[str, Any] | None:
-    """Require one unique checkpoint member of the pinned Stage-1 release."""
+    """Require one unique member of the pinned checkpoint release."""
 
     if registry_path is None:
         return None
     registry_path = registry_path.resolve()
-    registry = validate_stage1_registry(pd.read_csv(registry_path))
+    registry = validate_checkpoint_registry(pd.read_csv(registry_path))
     verified = verify_pinned_internal_manifest(root)
     registry_relative = registry_path.relative_to(root)
     if registry_relative not in verified:
-        raise ValueError(f"approved registry is not anchored by {INTERNAL_MANIFEST}")
+        raise ValueError(f"pinned release registry is not anchored by {INTERNAL_MANIFEST}")
 
     def resolved(value: object) -> Path:
         candidate = Path(str(value)).expanduser()
@@ -158,7 +158,8 @@ def _registry_row(
     selected = registry.loc[registry["checkpoint"].map(resolved) == checkpoint_path.resolve()]
     if len(selected) != 1:
         raise ValueError(
-            f"checkpoint must occur exactly once in approved registry; observed {len(selected)} rows"
+            f"checkpoint must occur exactly once in the pinned release registry. "
+            f"The registry contains {len(selected)} matching rows"
         )
     checkpoint_relative = checkpoint_path.resolve().relative_to(root)
     if checkpoint_relative not in verified:
@@ -214,7 +215,7 @@ def _explain_conditions(
 ) -> dict[int, tuple[dict[str, Any], GradCAMResult]]:
     clean_batch = _batch_from_dataset(datasets[0], indices, device)
     # Work at the native spatial CAM resolution. Upsampling a 7x7 ResNet map
-    # would manufacture thousands of interpolated ranks without information.
+    # adds interpolated ranks without additional information.
     clean_result = generator.explain(clean_batch["image"], resize=False)
     results = {0: (clean_batch, clean_result)}
     for severity in severities[1:]:
@@ -492,7 +493,7 @@ def run_attribution(
     methods = _normalize_methods(method)
     if require_clean_revision:
         if registry_path is None:
-            raise ValueError("a pinned Stage-1 registry is required for a traceable Stage-4 run")
+            raise ValueError("a pinned checkpoint registry is required for traceable attribution")
         expected_quantitative = list(range(6))
         if (
             methods != CAM_METHODS
@@ -500,7 +501,7 @@ def run_attribution(
             or ordered_figure_severities != list(DEFAULT_FIGURE_SEVERITIES)
         ):
             raise ValueError(
-                "traceable Stage-4 runs require both CAM methods, quantitative severities "
+                "traceable attribution requires both CAM methods, quantitative severities "
                 "0–5, and qualitative severities 0/2/4"
             )
     registry = _registry_row(registry_path, evaluator.checkpoint_path, evaluator, root)
@@ -577,7 +578,7 @@ def run_attribution(
         )
     output_paths = (metrics_path, summary_path, samples_path, grid_path, stability_path)
     provenance = {
-        "analysis": "Stage 4 attribution",
+        "analysis": "Exploratory attribution stability",
         "checkpoint": {
             "path": _portable_identifier(
                 evaluator.checkpoint_path, root, evaluator.checkpoint_sha256
@@ -629,7 +630,7 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--registry",
         type=Path,
-        help="approved checkpoint registry; scientific runs should always provide this",
+        help="pinned release registry required for scientific runs",
     )
     parser.add_argument("--corruption", default="defocus_blur")
     parser.add_argument("--severities", nargs="+", type=int, default=[0, 1, 2, 3, 4, 5])
@@ -641,7 +642,7 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "--stability-samples",
         type=int,
         default=0,
-        help="quantitative sample count; 0 evaluates the complete test split",
+        help="quantitative sample count where 0 evaluates the complete test split",
     )
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--method", choices=["gradcam", "gradcam++", "both"], default="both")
@@ -676,7 +677,7 @@ def main(argv: Sequence[str] | None = None) -> pd.DataFrame:
     )
     valid = int(frame["heatmap_valid"].sum())
     print(
-        f"wrote {len(frame):,} attribution rows for {frame['path'].nunique():,} samples; "
+        f"wrote {len(frame):,} attribution rows for {frame['path'].nunique():,} samples. "
         f"{valid:,} rows have finite stability metrics"
     )
     return frame

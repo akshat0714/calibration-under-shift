@@ -13,8 +13,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from experiments.evaluate_matrix import EXPECTED_DETAIL_JSONS, EXPECTED_TOTAL_ROWS
 from experiments.run_grid import KEY_COLUMNS
-from experiments.run_stage2_matrix import EXPECTED_DETAIL_JSONS, EXPECTED_TOTAL_ROWS
 
 VALUE_ATOL = 1e-6
 VALUE_RTOL = 1e-5
@@ -102,7 +102,9 @@ def verify_split_integrity(root: Path) -> dict[str, Any]:
     smids_root = root / "data/raw/smids/files"
     missing_smids = [path for path in smids["path"] if not (smids_root / path).is_file()]
     if missing_smids:
-        raise ReproductionError(f"SMIDS raw files are missing; first={missing_smids[0]}")
+        raise ReproductionError(
+            f"SMIDS raw files are missing. The first path is {missing_smids[0]}"
+        )
 
     hushem = pd.read_csv(root / "data/splits/hushem.csv")
     if len(hushem) != 1_080 or set(hushem["fold"]) != set(range(5)):
@@ -128,7 +130,9 @@ def verify_split_integrity(root: Path) -> dict[str, Any]:
         path for path in hushem["path"].unique() if not (hushem_root / path).is_file()
     ]
     if missing_hushem:
-        raise ReproductionError(f"HuSHeM raw files are missing; first={missing_hushem[0]}")
+        raise ReproductionError(
+            f"HuSHeM raw files are missing. The first path is {missing_hushem[0]}"
+        )
 
     return {
         "smids": {"unique_images": 3_000, "roles": expected_smids},
@@ -167,7 +171,7 @@ def verify_metrics(reference_path: Path, reproduced_path: Path) -> dict[str, Any
     reproduced = _normalized_metrics(_read_metrics(reproduced_path))
     if len(reference) != EXPECTED_TOTAL_ROWS or len(reproduced) != EXPECTED_TOTAL_ROWS:
         raise ReproductionError(
-            f"metrics row count must be {EXPECTED_TOTAL_ROWS}; "
+            f"metrics row count must be {EXPECTED_TOTAL_ROWS}. "
             f"reference={len(reference)}, reproduced={len(reproduced)}"
         )
     if set(reproduced["dataset"]) != {"smids", "hushem"}:
@@ -201,7 +205,7 @@ def verify_metrics(reference_path: Path, reproduced_path: Path) -> dict[str, Any
         difference = np.abs(reference["value"].to_numpy() - reproduced["value"].to_numpy())
         index = int(np.argmax(difference))
         raise ReproductionError(
-            "reproduced metric values exceed the frozen numerical tolerance; "
+            "reproduced metric values exceed the frozen numerical tolerance. "
             f"max_abs_error={difference[index]:.9g}, key={reference.iloc[index][KEY_COLUMNS].to_dict()}"
         )
     reference_revisions = sorted(reference["evaluation_git_revision"].dropna().unique().tolist())
@@ -262,7 +266,8 @@ def verify_thresholds(reference_path: Path, reproduced_path: Path) -> dict[str, 
     signal_never = int(reproduced["signal_crossing_severity"].isna().sum())
     if int(paired.sum()) != 10 or int(earlier.sum()) != 0 or signal_never != 6:
         raise ReproductionError(
-            "approved null changed: expected 10 paired crossings, 0 early, and 6 signal-never"
+            "Frozen primary result changed. Expected 10 paired crossings, no early crossings, "
+            "and 6 signals without crossings"
         )
     return {"rows": 16, "paired_crossings": 10, "early_crossings": 0, "signal_never": 6}
 
@@ -302,8 +307,9 @@ def verify_figure_manifest(root: Path, manifest_path: Path) -> dict[str, Any]:
     figures = manifest.get("figures", {})
     if set(figures) != EXPECTED_FIGURES:
         raise ReproductionError(
-            f"final figure set is not exact; missing={sorted(EXPECTED_FIGURES - set(figures))}, "
-            f"extra={sorted(set(figures) - EXPECTED_FIGURES)}"
+            "final figure set is not exact. Missing entries are "
+            f"{sorted(EXPECTED_FIGURES - set(figures))}. Extra entries are "
+            f"{sorted(set(figures) - EXPECTED_FIGURES)}"
         )
     verified_hashes = 0
 

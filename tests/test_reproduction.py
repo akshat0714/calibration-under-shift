@@ -56,7 +56,7 @@ def test_safe_reproduction_reset_is_exact_and_removes_only_isolated_tree(tmp_pat
 def test_release_reproduction_refuses_silent_cpu(monkeypatch):
     monkeypatch.setattr(reproduce, "resolve_device", lambda requested: torch.device("cpu"))
 
-    with pytest.raises(reproduce.ReleaseReproductionError, match="refusing silent CPU"):
+    with pytest.raises(reproduce.ReleaseReproductionError, match="CPU execution is refused"):
         reproduce._resolved_accelerator("auto", allow_cpu=False)
 
     assert reproduce._resolved_accelerator("auto", allow_cpu=True) == "cpu"

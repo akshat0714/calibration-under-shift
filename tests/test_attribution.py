@@ -249,7 +249,7 @@ def _tiny_suite_evaluator(tmp_path: Path):
     )
 
 
-def test_stage4_suite_writes_both_methods_fixed_samples_and_provenance(tmp_path, monkeypatch):
+def test_attribution_suite_writes_both_methods_fixed_samples_and_provenance(tmp_path, monkeypatch):
     evaluator = _tiny_suite_evaluator(tmp_path)
     output = tmp_path / "attribution"
     monkeypatch.setattr("experiments.run_attribution.git_revision", lambda _root: "d" * 40)
@@ -295,7 +295,7 @@ def test_stage4_suite_writes_both_methods_fixed_samples_and_provenance(tmp_path,
         assert len(provenance["outputs"][name]["sha256"]) == 64
 
 
-def test_stage4_contract_rejects_out_of_scope_inputs(tmp_path, monkeypatch):
+def test_attribution_contract_rejects_out_of_scope_inputs(tmp_path, monkeypatch):
     evaluator = _tiny_suite_evaluator(tmp_path)
     with pytest.raises(ValueError, match="between 4 and 6"):
         run_attribution(evaluator, "defocus_blur", [0, 2, 4], 3, tmp_path / "out")

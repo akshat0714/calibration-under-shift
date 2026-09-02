@@ -1,4 +1,4 @@
-# Frozen before the full seeded public-data grid; this is not an external preregistration.
+# Frozen before the full seeded public-data grid. This is not an external preregistration.
 aggregation:
   device_corruptions:
     [defocus_blur, motion_blur, gaussian_noise, shot_noise, jpeg, resample, illumination]

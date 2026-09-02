@@ -1,10 +1,8 @@
 """Publication-style figures for calibration-under-shift results.
 
 The metric plots consume the tidy table written by ``experiments/run_grid.py``.
-Device-corruption summaries are hierarchical: metrics are first averaged equally
-over registered corruptions within a seed/fold, then averaged across seed/fold
-replicates.  Uncertainty is therefore not inflated by treating every corruption
-as an independent experimental replicate.
+Device-corruption summaries use hierarchical averaging. Metrics are averaged equally
+over registered corruptions within each seed/fold and then across replicates.
 
 Run ``python -m src.viz.figures --help`` for the command-line interface.
 """
@@ -46,7 +44,7 @@ REQUIRED_METRIC_COLUMNS = frozenset(
 DEFAULT_DPI = 150
 
 # Okabe-Ito-derived colors, paired with marker and dash changes so that no series
-# identity depends on color alone.  Yellow is omitted because it is weak on white.
+# identity depends on color alone. Yellow is omitted because it has low contrast on white.
 _COLORS = (
     "#0072B2",
     "#D55E00",
@@ -147,7 +145,7 @@ def validate_metrics(metrics: pd.DataFrame) -> pd.DataFrame:
     invalid_values = frame["value"].notna() & values.isna()
     if invalid_values.any():
         examples = ", ".join(repr(item) for item in frame.loc[invalid_values, "value"].head(3))
-        raise ValueError(f"metric values must be numeric; invalid values include {examples}")
+        raise ValueError(f"metric values must be numeric. Invalid values include {examples}")
     frame["value"] = values.astype(float)
 
     for column in ("dataset", "model", "corruption", "method", "metric"):
@@ -189,8 +187,8 @@ def _device_corruption(name: Any) -> str | None:
     try:
         return canonical_name(normalized)
     except ValueError:
-        # Population/prior shifts and future non-device conditions must not leak
-        # into the advertised device-corruption average.
+        # Exclude population or prior shifts and unregistered conditions from the
+        # device-corruption average.
         return None
 
 
@@ -538,7 +536,7 @@ def plot_headline(
         fig.text(
             0.5,
             0.012,
-            "Corruptions are equally weighted within each replicate; lines show mean and "
+            "Corruptions are equally weighted within each replicate. Lines show mean and "
             + _interval_label(uncertainty)[:1].lower()
             + _interval_label(uncertainty)[1:]
             + ".",
@@ -691,7 +689,7 @@ def plot_reliability_diagram(
     """Plot calibration curves and confidence distributions from probabilities.
 
     ``probabilities`` may be one ``N x C`` array or a mapping from display label
-    to arrays sharing the supplied labels.  Empty bins are left empty; no curve
+    to arrays sharing the supplied labels. Empty bins are left empty. No curve
     interpolation or synthetic observations are introduced.
     """
 
@@ -964,7 +962,7 @@ def plot_corruption_grid(
                         labelpad=8,
                     )
         fig.suptitle(
-            "Simulated device-corruption sanity check",
+            "Simulated device-corruption ladders",
             fontsize=13,
             fontweight="bold",
             y=0.995,
@@ -1095,7 +1093,7 @@ def _load_array(path: Path, key: str | None = None) -> np.ndarray:
             if len(loaded.files) == 1:
                 return np.asarray(loaded[loaded.files[0]])
             choices = ", ".join(loaded.files)
-            raise ValueError(f"{path} contains multiple arrays ({choices}); expected key {key!r}")
+            raise ValueError(f"{path} contains multiple arrays ({choices}). Expected key {key!r}")
         finally:
             loaded.close()
     return np.asarray(loaded)
@@ -1140,7 +1138,7 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 
 
 def main(argv: Sequence[str] | None = None) -> dict[str, Path]:
-    """Command-line entry point; returns paths as a convenience for tests."""
+    """Command-line entry point that returns paths as a convenience for tests."""
 
     args = _parse_args(argv)
     probabilities = (

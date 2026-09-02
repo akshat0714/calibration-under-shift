@@ -1,26 +1,32 @@
-# Dataset provenance and release caveats
+# Dataset provenance
 
-Raw archives are not redistributed by this repository. `scripts/download_data.sh` downloads the original public archives and verifies the publisher-recorded checksum before extraction. The committed SMIDS, HuSHeM, and Kromp audit grids, plus the SMIDS corruption grid, contain small selections or transformations of images from the CC BY 4.0 releases cited below; those image portions retain CC BY 4.0 and the citations below provide source attribution.
+I do not redistribute raw archives. `scripts/download_data.sh` downloads each public release and verifies its publisher checksum before extraction. The committed audit figures and corruption example contain small selections or transformations from the CC BY 4.0 datasets cited below. Those image portions retain CC BY 4.0.
 
 ## SMIDS
 
-- Source: Hidayet Takidin, Halil Ibrahim Ceylan, and Hakan Kusetogullari, *SMIDS: Sperm Morphology Image Data Set*, Mendeley Data v1, DOI [10.17632/6xvdhc9fyb.1](https://doi.org/10.17632/6xvdhc9fyb.1).
-- License: CC BY 4.0, according to the Mendeley record.
-- Expected composition: 3,000 images: normal 1,021; abnormal 1,005; non-sperm 974.
-- Release caveat: 480 files use a `.bmp` suffix but contain PNG payloads, and the images span 1,914 dimensions. Preparation uses Pillow content sniffing rather than trusting extensions.
+- **Source.** [Takidin, Ceylan, and Kusetogullari](https://doi.org/10.17632/6xvdhc9fyb.1), Mendeley Data version 1
+- **License.** CC BY 4.0 according to the Mendeley record
+- **Composition.** 3,000 images with 1,021 normal, 1,005 abnormal, and 974 non-sperm images
+- **Release issue.** 480 files use a `.bmp` suffix but contain PNG data. The images contain 1,914 distinct width-by-height pairs.
+
+I decode files by content rather than extension. I use an image-stratified split because the release provides no patient or source-field identifier.
 
 ## HuSHeM
 
-- Source: M. Shaker and S. A. Monadjemi, *Human Sperm Head Morphology dataset (HuSHeM)*, Mendeley Data v3, DOI [10.17632/tt3yj2pf38.3](https://doi.org/10.17632/tt3yj2pf38.3).
-- License: CC BY 4.0, according to the Mendeley record.
-- Expected composition: 216 RGB images: normal 54; tapered 53; pyriform 57; amorphous 52.
-- Release caveat: six images differ from the nominal 131×131 dimensions. The data come from 15 patients, but the public release has no image-to-patient map. Reported five-fold CV is therefore image-level and may be optimistic if multiple images from one donor are correlated.
+- **Source.** [Shaker and Monadjemi](https://doi.org/10.17632/tt3yj2pf38.3), Mendeley Data version 3
+- **License.** CC BY 4.0 according to the Mendeley record
+- **Composition.** 216 RGB images with 54 normal, 53 tapered, 57 pyriform, and 52 amorphous images
+- **Release issue.** Six images differ from the nominal 131 by 131 dimensions. The release reports 15 patients but provides no image-to-patient map.
+
+I use image-level five-fold cross-validation because patient grouping is unavailable. Correlation between images from the same patient could make this estimate optimistic.
 
 ## Kromp blastocysts
 
-- Source: Florian Kromp et al., *An annotated human blastocyst dataset to benchmark deep learning architectures for in vitro fertilization*, Figshare v3, DOI [10.6084/m9.figshare.20123153.v3](https://doi.org/10.6084/m9.figshare.20123153.v3).
-- License: CC BY 4.0 in the Figshare metadata. The archive itself does not contain a license file.
-- Local audit: all 2,344 images decode as 512×384 RGB; 15 exact-byte duplicate groups are present, including groups that cross filename prefixes.
-- Release caveat: the public archive does not provide patient IDs. Filename prefixes produce 851 groups, not the paper's 837 patients, so they are not silently substituted for patient identifiers here. The released silver-standard CSV also contains a conflicting duplicate annotation for `838_02.png`, while `846_01.png` is unlabeled. Kromp experiments are blocked until duplicates/labels are resolved and an author-verified image-to-patient map is supplied.
+- **Source.** [Kromp et al.](https://doi.org/10.6084/m9.figshare.20123153.v3), Figshare version 3
+- **License.** CC BY 4.0 according to the Figshare metadata. The archive contains no license file.
+- **Composition.** 2,344 RGB images at 512 by 384 pixels
+- **Release issues.** The audit found 15 exact-byte duplicate groups. The public files provide no patient identifiers. Filename prefixes produce 851 groups rather than the 837 patients reported in the paper. The silver annotation file contains conflicting labels for `838_02.png`. The image `846_01.png` has no released label.
 
-These are public research datasets, not clinically representative deployment cohorts. Their inclusion does not constitute clinical validation.
+I exclude Kromp from modeling until the duplicate and label issues are resolved and an author-verified image-to-patient map is available. I do not substitute filename prefixes for patient identifiers.
+
+These public datasets are not representative clinical deployment cohorts. I do not treat their use as clinical validation.

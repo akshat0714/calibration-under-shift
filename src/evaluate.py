@@ -30,8 +30,8 @@ def _atomic_savez(path: Path, **arrays: np.ndarray) -> None:
     """Atomically publish a compressed NumPy cache entry.
 
     Evaluation may run on a preemptible instance. Writing to a sibling temporary
-    file and replacing only after ``np.savez_compressed`` closes successfully keeps
-    an interrupted write from masquerading as a valid cache hit on resume.
+    file and replacing only after ``np.savez_compressed`` closes successfully prevents
+    an interrupted write from being accepted as a valid cache hit on resume.
     """
 
     path.parent.mkdir(parents=True, exist_ok=True)

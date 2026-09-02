@@ -1,4 +1,4 @@
-"""Evaluate the exact Stage-1 checkpoint matrix on clean held-out test images only."""
+"""Evaluate the exact checkpoint matrix on clean held-out test images only."""
 
 from __future__ import annotations
 
@@ -39,7 +39,7 @@ HUSHEM_MIN_MEAN_ACCURACY = 0.80
 
 
 @dataclass(frozen=True, order=True)
-class Stage1Member:
+class CheckpointMember:
     dataset: str
     model: str
     seed: int
@@ -50,12 +50,12 @@ class Stage1Member:
         return f"{self.dataset}/{self.model}/seed={self.seed}{suffix}"
 
 
-EXPECTED_STAGE1_MEMBERS = frozenset(
+EXPECTED_CHECKPOINT_MEMBERS = frozenset(
     {
-        *(Stage1Member("smids", "resnet50", seed) for seed in range(2025, 2030)),
-        *(Stage1Member("smids", "xception", seed) for seed in range(2025, 2028)),
-        *(Stage1Member("smids", "mobilenet_v3_large", seed) for seed in range(2025, 2028)),
-        *(Stage1Member("hushem", "resnet50", 2025, fold) for fold in range(5)),
+        *(CheckpointMember("smids", "resnet50", seed) for seed in range(2025, 2030)),
+        *(CheckpointMember("smids", "xception", seed) for seed in range(2025, 2028)),
+        *(CheckpointMember("smids", "mobilenet_v3_large", seed) for seed in range(2025, 2028)),
+        *(CheckpointMember("hushem", "resnet50", 2025, fold) for fold in range(5)),
     }
 )
 
@@ -74,16 +74,16 @@ def _integer(value: Any, field: str, *, allow_missing: bool = False) -> int | No
     return int(numeric)
 
 
-def _member_from_row(row: pd.Series) -> Stage1Member:
+def _member_from_row(row: pd.Series) -> CheckpointMember:
     dataset = str(row["dataset"]).strip().lower()
     model = str(row["model"]).strip().lower().replace("-", "_")
     seed = _integer(row["seed"], "seed")
     fold = _integer(row["fold"], "fold", allow_missing=True)
     assert seed is not None
-    return Stage1Member(dataset, model, seed, fold)
+    return CheckpointMember(dataset, model, seed, fold)
 
 
-def validate_stage1_registry(registry: pd.DataFrame) -> pd.DataFrame:
+def validate_checkpoint_registry(registry: pd.DataFrame) -> pd.DataFrame:
     """Normalize and require exactly the prespecified 16 logical members."""
 
     missing_columns = REQUIRED_REGISTRY_COLUMNS - set(registry.columns)
@@ -97,11 +97,11 @@ def validate_stage1_registry(registry: pd.DataFrame) -> pd.DataFrame:
     counts = Counter(members)
     duplicates = sorted(member.label() for member, count in counts.items() if count > 1)
     observed = set(members)
-    missing = sorted(member.label() for member in EXPECTED_STAGE1_MEMBERS - observed)
-    extra = sorted(member.label() for member in observed - EXPECTED_STAGE1_MEMBERS)
+    missing = sorted(member.label() for member in EXPECTED_CHECKPOINT_MEMBERS - observed)
+    extra = sorted(member.label() for member in observed - EXPECTED_CHECKPOINT_MEMBERS)
     if duplicates or missing or extra:
         raise ValueError(
-            "Stage-1 checkpoint matrix is not exact; "
+            "Training checkpoint matrix is not exact. "
             f"duplicates={duplicates}, missing={missing}, extra={extra}"
         )
 
@@ -114,7 +114,7 @@ def validate_stage1_registry(registry: pd.DataFrame) -> pd.DataFrame:
         duplicates = normalized.loc[normalized[column].duplicated(keep=False), column].unique()
         if len(duplicates):
             raise ValueError(
-                f"registry {label} must be unique; duplicates="
+                f"registry {label} must be unique. Duplicate values are "
                 f"{sorted(str(value) for value in duplicates)}"
             )
 
@@ -157,7 +157,7 @@ def summarize_clean_metrics(metrics: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def stage1_sanity_failures(metrics: pd.DataFrame, summary: pd.DataFrame) -> list[str]:
+def clean_acceptance_failures(metrics: pd.DataFrame, summary: pd.DataFrame) -> list[str]:
     """Return prespecified clean-performance failures without hiding the outputs."""
 
     failures: list[str] = []
@@ -203,8 +203,8 @@ def _write_csv(frame: pd.DataFrame, path: Path) -> None:
 
 def evaluate_clean_matrix(
     registry_path: str | Path,
-    output_path: str | Path = "results/stage1_clean_metrics.csv",
-    summary_path: str | Path = "results/stage1_clean_summary.csv",
+    output_path: str | Path = "results/clean_test_metrics.csv",
+    summary_path: str | Path = "results/clean_test_summary.csv",
     *,
     device: str = "auto",
     require_cuda: bool = False,
@@ -213,12 +213,12 @@ def evaluate_clean_matrix(
     """Validate the matrix, run clean-test inference, and write atomic CSV outputs."""
 
     resolved_device = _require_requested_cuda(device, require_cuda)
-    registry = validate_stage1_registry(pd.read_csv(registry_path))
+    registry = validate_checkpoint_registry(pd.read_csv(registry_path))
     config_cache: dict[tuple[str, str], dict[str, Any]] = {}
     rows: list[dict[str, Any]] = []
 
     for _, row in registry.iterrows():
-        member: Stage1Member = row["_member"]
+        member: CheckpointMember = row["_member"]
         identity = (member.dataset, member.model)
         if identity not in config_cache:
             config_cache[identity] = load_config(CONFIG_PATHS[identity])
@@ -232,7 +232,7 @@ def evaluate_clean_matrix(
             device=resolved_device,
             cache_dir=cache_dir,
         )
-        observed = Stage1Member(
+        observed = CheckpointMember(
             str(evaluator.config["dataset"]["name"]),
             evaluator.model.backbone_name,
             evaluator.seed,
@@ -279,11 +279,17 @@ def evaluate_clean_matrix(
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--registry", required=True, type=Path)
-    parser.add_argument("--output", type=Path, default=Path("results/stage1_clean_metrics.csv"))
-    parser.add_argument("--summary", type=Path, default=Path("results/stage1_clean_summary.csv"))
+    parser.add_argument("--output", type=Path, default=Path("results/clean_test_metrics.csv"))
+    parser.add_argument("--summary", type=Path, default=Path("results/clean_test_summary.csv"))
     parser.add_argument("--device", default="auto")
     parser.add_argument("--require-cuda", action="store_true")
-    parser.add_argument("--enforce-sanity", action="store_true")
+    parser.add_argument("--enforce-clean-criteria", action="store_true")
+    parser.add_argument(
+        "--enforce-sanity",
+        dest="enforce_clean_criteria",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
     parser.add_argument("--cache-dir", type=Path, default=Path("results/cache"))
     return parser.parse_args()
 
@@ -300,10 +306,10 @@ def main() -> None:
     )
     print(f"wrote {len(tidy)} clean-test metric rows to {args.output}")
     print(f"wrote {len(summary)} aggregate rows to {args.summary}")
-    if args.enforce_sanity:
-        failures = stage1_sanity_failures(tidy, summary)
+    if args.enforce_clean_criteria:
+        failures = clean_acceptance_failures(tidy, summary)
         if failures:
-            raise SystemExit("Stage-1 sanity checks failed:\n- " + "\n- ".join(failures))
+            raise SystemExit("Clean-test acceptance criteria failed.\n- " + "\n- ".join(failures))
 
 
 if __name__ == "__main__":

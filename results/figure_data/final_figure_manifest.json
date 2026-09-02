@@ -12,55 +12,55 @@
   "figures": {
     "f1_appendix_defocus_blur": {
       "path": "results/figures/appendix/f1_lockstep_defocus_blur.png",
-      "sha256": "9a19a38fdba329cfee321c18e700d10af9d99e86a28dbb1149514430ceb104b9"
+      "sha256": "6e0026861bafc409efda516d5d6d0152acf79433c18508454ba1d5c656d7f299"
     },
     "f1_appendix_gaussian_noise": {
       "path": "results/figures/appendix/f1_lockstep_gaussian_noise.png",
-      "sha256": "f55106f75b23e2c9c8a12c09d88d63c2001d9fb2e6b58350b324b6662d5841a2"
+      "sha256": "ed34d460000360d618ca49f29c94a950cf43840d2ec452c48107a3ae0b7cebe1"
     },
     "f1_appendix_illumination": {
       "path": "results/figures/appendix/f1_lockstep_illumination.png",
-      "sha256": "71b223348eed464dc34ff63445604b5ce49663336b5f6da8b31973779dbed094"
+      "sha256": "199dfde3f3e3217ba9071a1d4a0b6ee3b7864456ccd58dab6ce844f63845ab67"
     },
     "f1_appendix_jpeg": {
       "path": "results/figures/appendix/f1_lockstep_jpeg.png",
-      "sha256": "b5a569b56bef066a7d277437e556be7132f1ddafdd18d0c7d73d7eb0ca9657d2"
+      "sha256": "8a3955e62c412ee3c14ff70ab3630c1d107f2a49d3031e291c5cc652b4c38a1f"
     },
     "f1_appendix_motion_blur": {
       "path": "results/figures/appendix/f1_lockstep_motion_blur.png",
-      "sha256": "0138a44c5d878c5dedae45c94cca3d0a1844470954970f3151e442658c559404"
+      "sha256": "9026826de2690141ee60057824e8e5ab3e61c29e93007b0eec45cbbf74bed8d2"
     },
     "f1_appendix_resample": {
       "path": "results/figures/appendix/f1_lockstep_resample.png",
-      "sha256": "9bb6ae142936a80e8c4262975bbdb924bdd2d21b4dea4820729bfc150fff189b"
+      "sha256": "ad38e6f000fc1c1db70e6b1f9aee6538b91dafe9ebbc1f404ad42fd7613be909"
     },
     "f1_appendix_shot_noise": {
       "path": "results/figures/appendix/f1_lockstep_shot_noise.png",
-      "sha256": "0962974e1beb560f6fd4f3a2b1f7ab1133a33f21726e31cc2eb2171199eae5de"
+      "sha256": "4328248196f61a0b47c13a2c0f490db9def9bbeedc3c58f06f24cbaa49937573"
     },
     "f1_headline": {
       "path": "results/figures/f1_headline_lockstep.png",
-      "sha256": "cac9030beb89853f077a2aa5799fafef730a1cca1baded7839982c3a00c433bc"
+      "sha256": "d9408776f80dc337abc106d373cfb603d7280cba4d2a6bb6afafa7bd3a0d723b"
     },
     "f2_reliability": {
       "path": "results/figures/f2_reliability_diagrams.png",
-      "sha256": "5bf9813066c8f1462fe78c96443e52c6c6990d6330cea450164a0c1da83238aa"
+      "sha256": "7be0ee0b3eb30974d2817907c766d4c5846f58fd589f786eb74bb0e91a3baa0a"
     },
     "f3_risk_coverage": {
       "path": "results/figures/f3_risk_coverage.png",
-      "sha256": "d37f03082fdde5368e6655672f4a2f6f33d8985886a550fdafaa86fc7f76e548"
+      "sha256": "e04ed999108753af553d5222cd1304ddff4a847b9b682f644607bdfd11577fe9"
     },
     "f4_failure_detection_auroc": {
       "path": "results/figures/f4_failure_detection_auroc.png",
-      "sha256": "bedd954ba8ccd851f2e1692d3a4e87b9e404aea1c7cd4ce63429e190ddb320ac"
+      "sha256": "1f716d605474cb72bd32e5e1a5946bd96599dacf30c76f5736075d0b31e1084f"
     },
     "f5_conformal": {
       "path": "results/figures/f5_conformal.png",
-      "sha256": "b06bde8db597cd55f1fba508bd4603f0de68e6b7e6dd070fbc56051acdb0e64d"
+      "sha256": "8ea8d5b9af1bd5d0507a87b7610a60a4e061d491f4d080929cda02b13644f929"
     },
     "f6_corruption_grid": {
       "path": "results/figures/corruption_grid.png",
-      "sha256": "faecf900eda625f35453a3698fcf252edbdf0fd2104567c1d25cd47bcf9a9210"
+      "sha256": "38a305ed7a5e082452ac926bc448f06ed98ada4bd2dcf7bae7f3e1aa5669d7c0"
     },
     "f7_attribution_grid": {
       "path": "results/attribution/attribution_grid.png",
@@ -68,10 +68,10 @@
     },
     "f7_attribution_stability_accuracy": {
       "path": "results/figures/f7_attribution_stability_accuracy.png",
-      "sha256": "488ce0715dff119c809d5b304b1e7b0b1e23a93a50849f8d85af131a4e766faf"
+      "sha256": "d15b9373703d997ce4597442e3cf2db912b914d1bb9e630b0e91817b889f3c0f"
     }
   },
-  "geometry_note": "F2 reliability bins and F3 full risk-coverage curves come from the paired frozen Stage-2 detail JSONs because scalar metrics.csv rows cannot reconstruct them. Generation fails unless each detail ECE, AURC, and risk-at-80 scalar agrees with its matching metrics.csv row. All aggregate claims and displayed summary scalars come from metrics.csv. F7 recomputes the attribution summary from its per-image tidy source, validates the Stage-4 hashes and checkpoint identity, and uses the exact matching raw-accuracy rows from metrics.csv.",
+  "geometry_note": "F2 reliability bins and F3 full risk-coverage curves come from the paired saved evaluation detail JSONs because scalar metrics.csv rows cannot reconstruct them. Generation fails unless each detail ECE, AURC, and risk-at-80 scalar agrees with its matching metrics.csv row. All aggregate claims and displayed summary scalars come from metrics.csv. F7 recomputes the attribution summary from its per-image tidy source, validates the attribution hashes and checkpoint identity, and uses the exact matching raw-accuracy rows from metrics.csv.",
   "plotted_data": {
     "f1_headline": {
       "path": "results/figure_data/f1_headline_lockstep.csv",
@@ -106,7 +106,7 @@
   "source_files": {
     "analysis_protocol": {
       "path": "configs/analysis_protocol.yaml",
-      "sha256": "5c6236584e2833f2ceb83c0438e5e5c66408df9175da994d5794d69a11074271"
+      "sha256": "e80ca1eb507a4c73be518669b61687e7b9c718b4f6c0791136090572ea7215da"
     },
     "attribution": {
       "checkpoint": {
@@ -145,7 +145,7 @@
       },
       "provenance": {
         "path": "results/attribution/attribution_provenance.json",
-        "sha256": "695bf86cf3472be27f8ba8958339a847735f49e4eaa8f0486d84d7faf5703b8e"
+        "sha256": "acde39cfd4ae415ad0147fe66bbecac28c58a47c8f0c788175b401a4479792b0"
       },
       "registry": {
         "path": "results/checkpoint_registry-stage1.csv",

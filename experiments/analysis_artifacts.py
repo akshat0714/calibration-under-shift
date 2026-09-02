@@ -1,12 +1,11 @@
-"""Generate the prespecified Checkpoint-3 analysis artifacts.
+"""Generate validated primary and secondary analysis artifacts.
 
-This module is intentionally outcome-agnostic.  It validates a complete Stage-2
-metric grid, independently recomputes the frozen threshold analysis, and refuses
-to render artifacts when the supplied ``thresholds.csv`` disagrees.  Primary and
-secondary outputs are kept separate so an exploratory pattern cannot silently
-become the headline claim.
+The module validates the complete metric grid, recomputes the prespecified
+threshold analysis, rejects mismatched threshold inputs, and keeps primary and
+secondary outputs separate.
 
-Run ``python -m experiments.checkpoint3 --help`` for the command-line interface.
+Run ``python -m experiments.analysis_artifacts --help`` for the command-line
+interface.
 """
 
 from __future__ import annotations
@@ -231,12 +230,13 @@ def _validate_frozen_protocol(protocol: Mapping[str, Any]) -> None:
     severities = tuple(int(value) for value in aggregation.get("severities", ()))
     if corruptions != CANONICAL_CORRUPTIONS:
         raise ValueError(
-            "analysis protocol does not match the frozen seven-corruption order; "
+            "analysis protocol does not match the frozen seven-corruption order. "
             f"observed={corruptions}"
         )
     if severities != CANONICAL_SEVERITIES:
         raise ValueError(
-            f"analysis protocol does not match frozen severities 1 through 5; observed={severities}"
+            f"analysis protocol does not match frozen severities 1 through 5. "
+            f"Observed severities are {severities}"
         )
     observed_thresholds = protocol.get("thresholds", {})
     for name, expected in FROZEN_THRESHOLDS.items():
@@ -293,7 +293,8 @@ def _validate_metric_conditions(
         if actual != expected:
             missing = sorted(expected - actual)
             raise ValueError(
-                f"incomplete {method}/{metric} grid for replicate {key}; missing={missing}"
+                f"incomplete {method}/{metric} grid for replicate {key}. "
+                f"Missing entries are {missing}"
             )
         selected = metrics.loc[
             (metrics["method"] == method)
@@ -321,14 +322,16 @@ def _validate_canonical_replicates(metrics: pd.DataFrame) -> None:
     expected = {(dataset, model): count for dataset, model, count in CANONICAL_REPLICATES}
     if set(counts) != set(expected):
         raise ValueError(
-            "metrics contain an unexpected canonical dataset/backbone matrix; "
+            "metrics contain an unexpected canonical dataset/backbone matrix. "
             f"expected={sorted(expected)}, observed={sorted(counts)}"
         )
     mismatched = {
         key: (counts[key], expected[key]) for key in expected if counts[key] != expected[key]
     }
     if mismatched:
-        raise ValueError(f"canonical replicate counts do not match Stage 1: {mismatched}")
+        raise ValueError(
+            f"canonical replicate counts do not match the checkpoint matrix {mismatched}"
+        )
     identities = {
         (dataset, model): frozenset(
             group[["seed", "fold"]].drop_duplicates().itertuples(index=False, name=None)
@@ -345,7 +348,7 @@ def _validate_canonical_replicates(metrics: pd.DataFrame) -> None:
     }
     if identity_mismatches:
         raise ValueError(
-            f"canonical seed/fold identities do not match Stage 1: {identity_mismatches}"
+            f"canonical seed and fold identities do not match the checkpoint matrix {identity_mismatches}"
         )
 
 
@@ -408,7 +411,7 @@ def _validate_ensembles(metrics: pd.DataFrame, protocol: Mapping[str, Any]) -> N
     member_counts = checkpoint.map(_checkpoint_member_count).unique()
     if set(member_counts) != {5}:
         raise ValueError(
-            "canonical SMIDS ResNet50 ensemble must contain five checkpoint members; "
+            "canonical SMIDS ResNet50 ensemble must contain five checkpoint members. "
             f"observed={sorted(member_counts)}"
         )
 
@@ -433,7 +436,7 @@ def _validate_threshold_agreement(
     expected_keys = set(expected[list(THRESHOLD_KEY_COLUMNS)].itertuples(index=False, name=None))
     if observed_keys != canonical_keys or expected_keys != canonical_keys:
         raise ValueError(
-            "threshold table does not contain the canonical 16 primary rows; "
+            "threshold table does not contain the canonical 16 primary rows. "
             f"observed={len(observed_keys)}, recomputed={len(expected_keys)}"
         )
     merged = observed.merge(
@@ -455,7 +458,7 @@ def _validate_threshold_agreement(
     return observed
 
 
-def validate_checkpoint3_inputs(
+def validate_analysis_inputs(
     metrics: pd.DataFrame,
     thresholds: pd.DataFrame,
     protocol: Mapping[str, Any],
@@ -832,56 +835,12 @@ def _ensemble_mi_table(metrics: pd.DataFrame, protocol: Mapping[str, Any]) -> pd
     ).sort_values(["dataset", "model", "severity"], kind="stable")
 
 
-def _severity_text(value: Any) -> str:
-    if pd.isna(value):
-        return "missing"
-    number = float(value)
-    return f"S{int(number)}" if number.is_integer() else f"S{number:g}"
-
-
 def _group_scope(groups: Iterable[tuple[str, str]]) -> str:
     ordered = sorted(set(groups), key=lambda item: _GROUP_ORDER[item])
     canonical = {(dataset, model) for dataset, model, _count in CANONICAL_REPLICATES}
     if set(ordered) == canonical:
         return "all four dataset–backbone groups"
     return ", ".join(f"{dataset.upper()}/{model}" for dataset, model in ordered)
-
-
-def _grouped_finding_details(frame: pd.DataFrame, status: str) -> str:
-    selected = frame.loc[frame["status"] == status]
-    if selected.empty:
-        return ""
-    labels = {(signal.method, signal.metric): signal.label for signal in PRIMARY_SIGNALS}
-    grouping = [
-        "signal_method",
-        "signal_metric",
-        "signal_crossing_severity",
-        "accuracy_drop_severity",
-    ]
-    parts: list[str] = []
-    for key, group in selected.groupby(grouping, dropna=False, sort=False):
-        method, metric, signal_crossing, accuracy_crossing = key
-        label = labels[(str(method), str(metric))]
-        scope = _group_scope(zip(group["dataset"], group["model"], strict=True))
-        if status == "signal_did_not_cross":
-            parts.append(
-                f"{label} (signal missing vs accuracy {_severity_text(accuracy_crossing)}) "
-                f"in {scope}"
-            )
-            continue
-        if status == "accuracy_did_not_cross":
-            parts.append(
-                f"{label} ({_severity_text(signal_crossing)} vs accuracy missing) in {scope}"
-            )
-            continue
-        if status == "neither_crossed":
-            parts.append(f"{label} (both crossings missing) in {scope}")
-            continue
-        parts.append(
-            f"{label} ({_severity_text(signal_crossing)} vs accuracy "
-            f"{_severity_text(accuracy_crossing)}) in {scope}"
-        )
-    return "; ".join(parts)
 
 
 def _primary_finding_sentence(main_table: pd.DataFrame) -> str:
@@ -896,28 +855,31 @@ def _primary_finding_sentence(main_table: pd.DataFrame) -> str:
         interpretation = "the prespecified hypothesis was not supported in any evaluable comparison"
     else:
         interpretation = "the prespecified result was mixed across evaluable comparisons"
-    earlier_detail = _grouped_finding_details(main_table, "earlier")
-    sentence = (
-        "Under the frozen equal-corruption protocol, "
+    status_counts = main_table["status"].value_counts()
+    details: list[str] = []
+    same_or_later_count = int(status_counts.get("same_or_later", 0))
+    if same_or_later_count:
+        details.append(f"{same_or_later_count} crossed at the same severity or later")
+    signal_missing_count = int(status_counts.get("signal_did_not_cross", 0))
+    if signal_missing_count:
+        details.append(f"the signal did not cross in {signal_missing_count} comparisons")
+    accuracy_missing_count = int(status_counts.get("accuracy_did_not_cross", 0))
+    if accuracy_missing_count:
+        details.append(f"accuracy did not cross in {accuracy_missing_count} comparisons")
+    neither_count = int(status_counts.get("neither_crossed", 0))
+    if neither_count:
+        details.append(f"neither threshold crossed in {neither_count} comparisons")
+    if len(details) > 1:
+        status_clause = ", ".join(details[:-1]) + f", and {details[-1]}"
+    elif details:
+        status_clause = details[0]
+    else:
+        status_clause = "all remaining comparisons crossed earlier"
+    return (
+        "Under the prespecified equal-corruption protocol, "
         f"{len(earlier)} of {evaluable} evaluable reliability comparisons crossed before the "
-        "five-percentage-point raw-accuracy drop"
+        f"five-percentage-point raw-accuracy drop, while {status_clause}, so {interpretation}."
     )
-    if earlier_detail:
-        sentence += f": {earlier_detail}"
-    status_labels = {
-        "same_or_later": "same or later",
-        "signal_did_not_cross": "signal did not cross",
-        "accuracy_did_not_cross": "accuracy did not cross",
-        "neither_crossed": "neither crossed",
-    }
-    remainder = [
-        f"{label}: {_grouped_finding_details(main_table, status)}"
-        for status, label in status_labels.items()
-        if (main_table["status"] == status).any()
-    ]
-    if remainder:
-        sentence += "; " + "; ".join(remainder)
-    return f"{sentence}; {interpretation}."
 
 
 def _secondary_ece_sentence(ece_transfer: pd.DataFrame) -> str:
@@ -947,7 +909,7 @@ def _secondary_ece_sentence(ece_transfer: pd.DataFrame) -> str:
     upper = float(difference.max())
     return (
         "In secondary analysis, clean-calibration-fitted temperature scaling had mean ECE "
-        f"{', '.join(comparisons)} at S{severity}; paired temperature-minus-raw differences "
+        f"{', '.join(comparisons)} at S{severity}, and paired temperature-minus-raw differences "
         f"ranged from {lower:+.3f} to {upper:+.3f}."
     )
 
@@ -1118,13 +1080,13 @@ def _legend(ax: Axes) -> None:
         ax.legend(unique.values(), unique.keys(), fontsize=7, frameon=False, loc="best")
 
 
-def plot_checkpoint3_headline(
+def plot_analysis_overview(
     metrics: pd.DataFrame,
     main_table: pd.DataFrame,
     protocol: Mapping[str, Any],
     output_path: str | Path,
 ) -> Path:
-    """Render a threshold-annotated ResNet50 headline without outcome tuning."""
+    """Render a threshold-annotated ResNet50 analysis overview."""
 
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -1341,8 +1303,8 @@ def plot_checkpoint3_headline(
                 _legend(ax)
 
         fig.suptitle(
-            "Checkpoint 3 draft: reliability under simulated device shift\n"
-            "ResNet50 primary trajectories; temperature scaling and ensemble MI are secondary",
+            "Reliability under simulated device shift\n"
+            "Primary ResNet50 trajectories with secondary temperature scaling and ensemble MI",
             fontsize=13,
             fontweight="bold",
             y=0.995,
@@ -1366,7 +1328,7 @@ def plot_checkpoint3_headline(
             dpi=DEFAULT_DPI,
             bbox_inches="tight",
             facecolor="white",
-            metadata={"Software": "calibration-under-shift checkpoint3"},
+            metadata={"Software": "calibration-under-shift analysis"},
         )
         plt.close(fig)
     return output
@@ -1374,15 +1336,21 @@ def plot_checkpoint3_headline(
 
 def _format_number(value: Any, digits: int = 3) -> str:
     if pd.isna(value):
-        return "—"
+        return "NA"
     return f"{float(value):.{digits}f}"
 
 
 def _format_crossing(value: Any) -> str:
     if pd.isna(value):
-        return "—"
+        return "Not reached"
     number = float(value)
     return f"{number:g}"
+
+
+def _format_gap(value: Any) -> str:
+    if pd.isna(value):
+        return "Not applicable"
+    return f"{float(value):g}"
 
 
 def _escape_markdown(value: Any) -> str:
@@ -1440,16 +1408,16 @@ def _main_markdown(main_table: pd.DataFrame) -> str:
             ("early_warning_gap", "Gap"),
             ("status", "Status"),
         ),
-        title="Checkpoint 3 primary results table",
+        title="Primary threshold results",
         note=(
             "Primary/prespecified. Corruptions are averaged equally within each seed/fold before "
             "replicate means and sample standard deviations are computed. Missing crossings remain "
-            "missing; the gap is an ordinal severity-level difference."
+            "missing. The gap is an ordinal severity-level difference."
         ),
         formatters={
             "signal_crossing_severity": _format_crossing,
             "accuracy_drop_severity": _format_crossing,
-            "early_warning_gap": _format_crossing,
+            "early_warning_gap": _format_gap,
         },
     )
 
@@ -1508,14 +1476,14 @@ def _write_table_pair(
     return csv_path, markdown_path
 
 
-def generate_checkpoint3_artifacts(
+def generate_analysis_artifacts(
     metrics_path: str | Path,
     thresholds_path: str | Path,
     protocol_path: str | Path,
-    output_dir: str | Path = "results/checkpoint3",
-    figure_path: str | Path | None = "results/figures/checkpoint3_headline.png",
+    output_dir: str | Path = "results/analysis",
+    figure_path: str | Path | None = "results/figures/analysis_overview.png",
 ) -> dict[str, Path]:
-    """Validate canonical inputs and write every Checkpoint-3 artifact."""
+    """Validate canonical inputs and write primary and secondary artifacts."""
 
     metrics_source = Path(metrics_path)
     thresholds_source = Path(thresholds_path)
@@ -1530,7 +1498,7 @@ def generate_checkpoint3_artifacts(
     thresholds_input = pd.read_csv(thresholds_source)
     with protocol_source.open(encoding="utf-8") as handle:
         protocol = yaml.safe_load(handle)
-    metrics, thresholds = validate_checkpoint3_inputs(
+    metrics, thresholds = validate_analysis_inputs(
         metrics_input,
         thresholds_input,
         protocol,
@@ -1542,40 +1510,40 @@ def generate_checkpoint3_artifacts(
     main_table = build_main_table(metrics, thresholds)
     outputs["main_table_csv"], outputs["main_table_markdown"] = _write_table_pair(
         destination,
-        "checkpoint3_main_table",
+        "primary_threshold_table",
         main_table,
         _main_markdown(main_table),
     )
     ece_transfer = _ece_transfer_table(metrics, protocol)
     finding = finding_text(main_table, ece_transfer)
-    outputs["finding"] = destination / "checkpoint3_finding.txt"
+    outputs["finding"] = destination / "primary_finding.txt"
     _atomic_text(outputs["finding"], finding)
 
     secondary_specs = (
         (
             "secondary_per_corruption",
             _per_corruption_table(metrics, protocol),
-            "Checkpoint 3 secondary per-corruption breakdown",
+            "Secondary per-corruption results",
         ),
         (
             "secondary_ece_transfer",
             ece_transfer,
-            "Checkpoint 3 secondary raw-versus-temperature ECE",
+            "Secondary raw and temperature-scaled ECE",
         ),
         (
             "secondary_selective",
             _selective_table(metrics, protocol),
-            "Checkpoint 3 secondary selective retained accuracy",
+            "Secondary selective retained accuracy",
         ),
         (
             "secondary_conformal",
             _conformal_table(metrics, protocol),
-            "Checkpoint 3 secondary conformal coverage and set size",
+            "Secondary conformal coverage and set size",
         ),
         (
             "secondary_ensemble_mi",
             _ensemble_mi_table(metrics, protocol),
-            "Checkpoint 3 secondary deep-ensemble mutual information",
+            "Secondary deep-ensemble mutual information",
         ),
     )
     for stem, frame, title in secondary_specs:
@@ -1587,18 +1555,23 @@ def generate_checkpoint3_artifacts(
         )
 
     if figure_path is not None:
-        outputs["headline_figure"] = plot_checkpoint3_headline(
+        outputs["analysis_overview_figure"] = plot_analysis_overview(
             metrics,
             main_table,
             protocol,
             figure_path,
         )
-    manifest_path = destination / "checkpoint3_manifest.json"
+    manifest_path = destination / "analysis_manifest.json"
     manifest = {
         "analysis_tiers": {
             "primary": [
                 key
-                for key in ("main_table_csv", "main_table_markdown", "finding", "headline_figure")
+                for key in (
+                    "main_table_csv",
+                    "main_table_markdown",
+                    "finding",
+                    "analysis_overview_figure",
+                )
                 if key in outputs
             ],
             "secondary_exploratory": sorted(key for key in outputs if key.startswith("secondary_")),
@@ -1626,23 +1599,23 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--metrics", type=Path, default=Path("results/metrics.csv"))
     parser.add_argument("--thresholds", type=Path, default=Path("results/thresholds.csv"))
     parser.add_argument("--protocol", type=Path, default=Path("configs/analysis_protocol.yaml"))
-    parser.add_argument("--output-dir", type=Path, default=Path("results/checkpoint3"))
+    parser.add_argument("--output-dir", type=Path, default=Path("results/analysis"))
     parser.add_argument(
         "--figure",
         type=Path,
-        default=Path("results/figures/checkpoint3_headline.png"),
+        default=Path("results/figures/analysis_overview.png"),
     )
     parser.add_argument(
         "--no-figure",
         action="store_true",
-        help="write tables only; the final unshaded F1 is generated separately",
+        help="write tables only because the final unshaded F1 is generated separately",
     )
     return parser.parse_args(argv)
 
 
 def main(argv: Sequence[str] | None = None) -> dict[str, Path]:
     args = _parse_args(argv)
-    outputs = generate_checkpoint3_artifacts(
+    outputs = generate_analysis_artifacts(
         args.metrics,
         args.thresholds,
         args.protocol,

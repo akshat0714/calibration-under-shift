@@ -2,7 +2,7 @@
   "config": "configs/smids_resnet50.yaml",
   "corruption_protocol_sha256": "f9d825de07eeda22bf294c5ea66def1ea386e7a6d63a1a6281e28948c9b361c8",
   "corruption_seed": 1729,
-  "figure_sha256": "faecf900eda625f35453a3698fcf252edbdf0fd2104567c1d25cd47bcf9a9210",
+  "figure_sha256": "38a305ed7a5e082452ac926bc448f06ed98ada4bd2dcf7bae7f3e1aa5669d7c0",
   "manifest": "data/splits/smids.csv",
   "manifest_sha256": "ce3c1a90df7674579ac807bec9026f805a82e68f96ce8474b4e35c7b1c006da2",
   "parameters": {

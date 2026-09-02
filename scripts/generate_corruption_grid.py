@@ -49,7 +49,7 @@ def generate_corruption_grid(
     sample_path = Path(dataset["root"]) / sample_relative
     if not sample_path.is_file():
         raise FileNotFoundError(
-            f"held-out sample does not exist: {sample_path}; run the SMIDS download first"
+            f"held-out sample does not exist at {sample_path}. Run the SMIDS download first"
         )
     seed = int(config.get("evaluation", {}).get("corruption_seed", 1729))
     output = Path(output_path)

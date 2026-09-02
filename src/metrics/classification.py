@@ -37,6 +37,6 @@ def classification_metrics(probabilities, labels) -> dict[str, float]:
                 )
             )
     except ValueError:
-        # A small split may lack one class; accuracy/F1 remain defined and AUROC does not.
+        # A small split may lack one class. Accuracy and F1 remain defined, but AUROC does not.
         output["auroc" if probs.shape[1] == 2 else "auroc_ovr_macro"] = float("nan")
     return output

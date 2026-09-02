@@ -8,16 +8,16 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from experiments.evaluate_clean_matrix import EXPECTED_STAGE1_MEMBERS
+from experiments.evaluate_clean_matrix import EXPECTED_CHECKPOINT_MEMBERS
 from experiments.run_grid import KEY_COLUMNS
 from src.utils import git_revision
 
-stage2 = importlib.import_module("experiments.run_stage2_matrix")
+evaluation = importlib.import_module("experiments.evaluate_matrix")
 
 
 def _write_exact_registry(tmp_path: Path) -> Path:
     rows = []
-    for member in sorted(EXPECTED_STAGE1_MEMBERS):
+    for member in sorted(EXPECTED_CHECKPOINT_MEMBERS):
         run_id = member.label().replace("/", "-").replace("=", "-")
         checkpoint = tmp_path / "checkpoints" / f"{run_id}.pt"
         checkpoint.parent.mkdir(parents=True, exist_ok=True)
@@ -55,15 +55,15 @@ def _row(dataset: str, model: str, index: int, revision: str) -> dict:
     return row
 
 
-def test_frozen_stage2_cardinalities():
-    assert stage2.EXPECTED_GROUP_ROWS == {
+def test_frozen_evaluation_cardinalities():
+    assert evaluation.EXPECTED_GROUP_ROWS == {
         ("smids", "resnet50"): 14_565,
         ("smids", "xception"): 8_295,
         ("smids", "mobilenet_v3_large"): 8_295,
         ("hushem", "resnet50"): 14_385,
     }
-    assert sum(stage2.EXPECTED_GROUP_ROWS.values()) == stage2.EXPECTED_TOTAL_ROWS == 45_540
-    assert stage2.EXPECTED_DETAIL_JSONS == 17
+    assert sum(evaluation.EXPECTED_GROUP_ROWS.values()) == evaluation.EXPECTED_TOTAL_ROWS == 45_540
+    assert evaluation.EXPECTED_DETAIL_JSONS == 17
 
 
 def test_orchestrator_runs_groups_in_order_and_publishes_only_after_strict_validation(
@@ -75,10 +75,10 @@ def test_orchestrator_runs_groups_in_order_and_publishes_only_after_strict_valid
     parts_dir = tmp_path / "parts"
     details_dir = tmp_path / "details"
     revision = "a" * 40
-    monkeypatch.setattr(stage2, "require_clean_git_revision", lambda *args, **kwargs: revision)
+    monkeypatch.setattr(evaluation, "require_clean_git_revision", lambda *args, **kwargs: revision)
     validated: list[tuple[int, dict]] = []
     monkeypatch.setattr(
-        stage2,
+        evaluation,
         "validate_complete_grid",
         lambda metrics, protocol: validated.append((len(metrics), protocol)),
     )
@@ -97,7 +97,7 @@ def test_orchestrator_runs_groups_in_order_and_publishes_only_after_strict_valid
         config = Path(command[command.index("--config") + 1]).name
         identity = config_identities[config]
         part = Path(command[command.index("--output") + 1])
-        count = stage2.EXPECTED_GROUP_ROWS[identity]
+        count = evaluation.EXPECTED_GROUP_ROWS[identity]
         pd.DataFrame(
             [_row(identity[0], identity[1], index, revision) for index in range(count)]
         ).to_csv(part, index=False)
@@ -111,14 +111,14 @@ def test_orchestrator_runs_groups_in_order_and_publishes_only_after_strict_valid
                 json.dumps({"evaluation_git_revision": revision}), encoding="utf-8"
             )
         if identity == ("smids", "resnet50"):
-            (shared_details / stage2.ENSEMBLE_DETAIL_NAME).write_text(
+            (shared_details / evaluation.ENSEMBLE_DETAIL_NAME).write_text(
                 json.dumps({"evaluation_git_revision": revision}), encoding="utf-8"
             )
         return subprocess.CompletedProcess(command, 0)
 
-    monkeypatch.setattr(stage2.subprocess, "run", fake_run)
+    monkeypatch.setattr(evaluation.subprocess, "run", fake_run)
 
-    metrics = stage2.run_stage2_matrix(
+    metrics = evaluation.run_evaluation_matrix(
         registry_path=registry,
         output=output,
         parts_dir=parts_dir,
@@ -129,7 +129,7 @@ def test_orchestrator_runs_groups_in_order_and_publishes_only_after_strict_valid
         python="python-under-test",
     )
 
-    assert len(metrics) == len(pd.read_csv(output)) == stage2.EXPECTED_TOTAL_ROWS
+    assert len(metrics) == len(pd.read_csv(output)) == evaluation.EXPECTED_TOTAL_ROWS
     assert [Path(command[command.index("--config") + 1]).name for command in commands] == [
         "smids_resnet50.yaml",
         "smids_xception.yaml",
@@ -142,7 +142,7 @@ def test_orchestrator_runs_groups_in_order_and_publishes_only_after_strict_valid
     assert all(
         Path(command[command.index("--details-dir") + 1]) == details_dir for command in commands
     )
-    assert validated and validated[0][0] == stage2.EXPECTED_TOTAL_ROWS
+    assert validated and validated[0][0] == evaluation.EXPECTED_TOTAL_ROWS
     assert validated[0][1]["aggregation"]["severities"] == [1, 2, 3, 4, 5]
     assert not output.with_suffix(".csv.tmp").exists()
 
@@ -154,7 +154,7 @@ def test_duplicate_tidy_keys_are_rejected_before_output_replacement(tmp_path):
     output.write_text("sentinel\n", encoding="utf-8")
 
     with pytest.raises(ValueError, match="duplicate tidy keys"):
-        stage2.reject_duplicate_tidy_keys(metrics)
+        evaluation.reject_duplicate_tidy_keys(metrics)
 
     assert output.read_text(encoding="utf-8") == "sentinel\n"
 
@@ -164,27 +164,27 @@ def test_missing_checkpoint_fails_before_any_group_runs(tmp_path, monkeypatch):
     registry = _write_exact_registry(tmp_path)
     frame = pd.read_csv(registry)
     Path(frame.iloc[0]["checkpoint"]).unlink()
-    monkeypatch.setattr(stage2, "require_clean_git_revision", lambda *args, **kwargs: "a" * 40)
+    monkeypatch.setattr(evaluation, "require_clean_git_revision", lambda *args, **kwargs: "a" * 40)
     called = False
 
     def unexpected_run(*args, **kwargs):
         nonlocal called
         called = True
 
-    monkeypatch.setattr(stage2, "run_group", unexpected_run)
+    monkeypatch.setattr(evaluation, "run_group", unexpected_run)
 
     with pytest.raises(FileNotFoundError, match="checkpoint paths are missing"):
-        stage2.run_stage2_matrix(registry_path=registry, root=repository)
+        evaluation.run_evaluation_matrix(registry_path=registry, root=repository)
 
     assert called is False
 
 
 def test_negative_worker_override_is_rejected_before_evaluation(tmp_path, monkeypatch):
     repository = Path(__file__).resolve().parents[1]
-    monkeypatch.setattr(stage2, "require_clean_git_revision", lambda *args, **kwargs: "a" * 40)
+    monkeypatch.setattr(evaluation, "require_clean_git_revision", lambda *args, **kwargs: "a" * 40)
 
     with pytest.raises(ValueError, match="non-negative"):
-        stage2.run_stage2_matrix(root=repository, num_workers=-1)
+        evaluation.run_evaluation_matrix(root=repository, num_workers=-1)
 
 
 def test_git_revision_gate_rejects_tracked_and_unrelated_untracked_changes(tmp_path):
@@ -196,7 +196,7 @@ def test_git_revision_gate_rejects_tracked_and_unrelated_untracked_changes(tmp_p
     subprocess.run(["git", "add", "tracked.txt"], cwd=tmp_path, check=True)
     subprocess.run(["git", "commit", "-qm", "fixture"], cwd=tmp_path, check=True)
 
-    revision = stage2.require_clean_git_revision(tmp_path)
+    revision = evaluation.require_clean_git_revision(tmp_path)
     assert len(revision) == 40
     assert git_revision(tmp_path) == revision
 
@@ -204,16 +204,16 @@ def test_git_revision_gate_rejects_tracked_and_unrelated_untracked_changes(tmp_p
     generated.parent.mkdir(parents=True)
     generated.write_text("generated\n", encoding="utf-8")
     assert (
-        stage2.require_clean_git_revision(tmp_path, allowed_untracked=(Path("results/parts"),))
+        evaluation.require_clean_git_revision(tmp_path, allowed_untracked=(Path("results/parts"),))
         == revision
     )
 
     unrelated = tmp_path / "unversioned.py"
     unrelated.write_text("pass\n", encoding="utf-8")
     with pytest.raises(RuntimeError, match="dirty or contains unversioned"):
-        stage2.require_clean_git_revision(tmp_path, allowed_untracked=(Path("results/parts"),))
+        evaluation.require_clean_git_revision(tmp_path, allowed_untracked=(Path("results/parts"),))
     unrelated.unlink()
 
     tracked.write_text("dirty\n", encoding="utf-8")
     with pytest.raises(RuntimeError, match="dirty or contains unversioned"):
-        stage2.require_clean_git_revision(tmp_path, allowed_untracked=(Path("results/parts"),))
+        evaluation.require_clean_git_revision(tmp_path, allowed_untracked=(Path("results/parts"),))

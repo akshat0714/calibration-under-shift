@@ -9,10 +9,10 @@ import pytest
 
 from experiments import evaluate_clean_matrix as clean_module
 from experiments.evaluate_clean_matrix import (
+    clean_acceptance_failures,
     evaluate_clean_matrix,
-    stage1_sanity_failures,
     summarize_clean_metrics,
-    validate_stage1_registry,
+    validate_checkpoint_registry,
 )
 from src.evaluate import PredictionBundle
 
@@ -47,39 +47,39 @@ def _registry() -> pd.DataFrame:
 
 def test_registry_requires_exact_prespecified_members():
     frame = _registry()
-    validated = validate_stage1_registry(frame)
+    validated = validate_checkpoint_registry(frame)
     assert len(validated) == 16
     assert {
         (member.dataset, member.model, member.seed, member.fold) for member in validated["_member"]
     } == set(TEST_MEMBERS)
 
     with pytest.raises(ValueError, match="missing"):
-        validate_stage1_registry(frame.iloc[:-1])
+        validate_checkpoint_registry(frame.iloc[:-1])
     with pytest.raises(ValueError, match="duplicates"):
-        validate_stage1_registry(pd.concat([frame, frame.iloc[[0]]], ignore_index=True))
+        validate_checkpoint_registry(pd.concat([frame, frame.iloc[[0]]], ignore_index=True))
 
     extra = frame.copy()
     extra.loc[0, "seed"] = 9999
     with pytest.raises(ValueError, match="extra"):
-        validate_stage1_registry(extra)
+        validate_checkpoint_registry(extra)
 
 
 def test_registry_rejects_duplicate_checkpoint_and_noninteger_identity():
     duplicate = _registry()
     duplicate.loc[1, "checkpoint"] = duplicate.loc[0, "checkpoint"]
     with pytest.raises(ValueError, match="checkpoint paths must be unique"):
-        validate_stage1_registry(duplicate)
+        validate_checkpoint_registry(duplicate)
 
     duplicate = _registry()
     duplicate.loc[1, "run_id"] = duplicate.loc[0, "run_id"]
     with pytest.raises(ValueError, match="run IDs must be unique"):
-        validate_stage1_registry(duplicate)
+        validate_checkpoint_registry(duplicate)
 
     invalid = _registry()
     invalid["seed"] = invalid["seed"].astype(float)
     invalid.loc[0, "seed"] = 2025.5
     with pytest.raises(ValueError, match="seed must be an integer"):
-        validate_stage1_registry(invalid)
+        validate_checkpoint_registry(invalid)
 
 
 def test_summary_uses_sample_standard_deviation():
@@ -97,8 +97,8 @@ def test_summary_uses_sample_standard_deviation():
     assert row["n"] == 2
 
 
-def test_stage1_sanity_checks_prespecified_thresholds():
-    registry = validate_stage1_registry(_registry())
+def test_clean_acceptance_criteria_use_prespecified_thresholds():
+    registry = validate_checkpoint_registry(_registry())
     accuracy_rows = [
         {
             "dataset": member.dataset,
@@ -125,12 +125,12 @@ def test_stage1_sanity_checks_prespecified_thresholds():
         ]
     )
     metrics = pd.DataFrame(accuracy_rows)
-    assert stage1_sanity_failures(metrics, summary) == []
+    assert clean_acceptance_failures(metrics, summary) == []
 
     metrics.loc[0, "value"] = 0.25
     summary.loc[summary["model"] == "xception", "mean"] = 0.84
     summary.loc[summary["dataset"] == "hushem", "mean"] = 0.79
-    failures = stage1_sanity_failures(metrics, summary)
+    failures = clean_acceptance_failures(metrics, summary)
     assert any("at or below chance" in failure for failure in failures)
     assert any("smids/xception" in failure for failure in failures)
     assert any("hushem/resnet50" in failure for failure in failures)

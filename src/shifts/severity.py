@@ -56,7 +56,7 @@ def canonical_name(name: str) -> str:
     normalized = ALIASES.get(normalized, normalized)
     if normalized not in CORRUPTION_PARAMETERS:
         available = ", ".join(sorted(CORRUPTION_PARAMETERS))
-        raise ValueError(f"unknown corruption {name!r}; choose one of: {available}")
+        raise ValueError(f"unknown corruption {name!r}. Choose one of {available}")
     return normalized
 
 

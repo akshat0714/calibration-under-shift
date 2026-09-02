@@ -50,7 +50,7 @@ def test_walkthrough_defaults_to_real_results_and_guards_demo_overrides():
     assert 'ATTRIBUTION / "attribution_stability.csv"' in source
     assert 'FIGURES / "attribution_stability.csv"' not in source
     assert "The early-warning hypothesis was not supported at these thresholds" in source
-    assert source.count("Secondary/exploratory:") >= 3
+    assert source.count("Secondary and exploratory") >= 3
 
 
 def test_walkthrough_accepts_standard_results_directory_override(tmp_path, monkeypatch):
@@ -103,7 +103,7 @@ def test_walkthrough_executes_default_canonical_results(monkeypatch):
     output = _execution_text(executed)
 
     assert "validated complete prespecified SMIDS/HuSHeM grid" in output
-    assert "Primary/prespecified result" in output
+    assert "In the primary prespecified result" in output
     assert "10 comparisons with both crossings observed" in output
     assert "6 further signals never crossed" in output
 

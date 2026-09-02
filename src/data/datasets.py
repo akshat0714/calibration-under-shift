@@ -18,8 +18,8 @@ ALLOWED_SPLITS = {"train", "val", "calibration", "test", "consensus_test"}
 def load_manifest(path: str | Path, fold: int | None = None) -> pd.DataFrame:
     """Load and validate a split manifest.
 
-    A manifest is immutable experiment input, not a place where splits are inferred.
-    Cross-validation manifests may contain one row per sample and fold; callers must
+    A manifest is immutable experiment input. Splits are not inferred here.
+    Cross-validation manifests may contain one row per sample and fold. Callers must
     select exactly one fold before constructing a dataset.
     """
 
@@ -66,10 +66,12 @@ def _validate_manifest_frame(
     leaked = duplicates[duplicates > 1]
     if not leaked.empty:
         examples = leaked.index[:3].tolist()
-        raise ValueError(f"sample paths occur in multiple splits; examples: {examples}")
+        raise ValueError(f"sample paths occur in multiple splits. Examples include {examples}")
     if frame["path"].duplicated().any():
         examples = frame.loc[frame["path"].duplicated(keep=False), "path"].head(3).tolist()
-        raise ValueError(f"duplicate sample paths in one manifest view; examples: {examples}")
+        raise ValueError(
+            f"duplicate sample paths occur in one manifest view. Examples include {examples}"
+        )
     if "patient_id" in frame.columns:
         if frame["patient_id"].isna().any():
             raise ValueError("patient_id must be non-missing when the column is present")
@@ -77,7 +79,7 @@ def _validate_manifest_frame(
         leaking_patients = patient_splits[patient_splits > 1]
         if not leaking_patients.empty:
             examples = leaking_patients.index[:3].tolist()
-            raise ValueError(f"patient leakage across splits; examples: {examples}")
+            raise ValueError(f"patient leakage occurs across splits. Examples include {examples}")
     return frame.reset_index(drop=True)
 
 

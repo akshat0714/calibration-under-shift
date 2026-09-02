@@ -18,7 +18,7 @@ def _assert_calibration_split(split) -> None:
 
 
 class TemperatureScaler(nn.Module):
-    """A positive scalar temperature; argmax predictions are unchanged."""
+    """A positive scalar temperature that does not change argmax predictions."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -33,7 +33,7 @@ class TemperatureScaler(nn.Module):
 
 
 class VectorScaler(nn.Module):
-    """Per-class positive scales and biases; more flexible but less data-efficient."""
+    """Per-class positive scales and biases with greater flexibility and data requirements."""
 
     def __init__(self, num_classes: int) -> None:
         super().__init__()

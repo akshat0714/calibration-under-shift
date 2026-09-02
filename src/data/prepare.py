@@ -25,8 +25,8 @@ IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
 def discover_decodable_images(root: Path, *, strict: bool = True) -> list[Path]:
     """Inventory supported image candidates using content-aware decoding.
 
-    Successful dataset preparation is strict: an unreadable candidate is an audit
-    failure, not a file that can silently disappear from the release inventory.
+    Dataset preparation fails if any supported image candidate cannot be decoded.
+    This preserves a complete release inventory.
     """
 
     images: list[Path] = []
@@ -43,7 +43,7 @@ def discover_decodable_images(root: Path, *, strict: bool = True) -> list[Path]:
     if strict and unreadable:
         examples = [str(path.relative_to(root)) for path in unreadable[:5]]
         raise ValueError(
-            f"found {len(unreadable)} unreadable image candidates; examples: {examples}"
+            f"found {len(unreadable)} unreadable image candidates. Examples include {examples}"
         )
     return images
 
@@ -137,7 +137,7 @@ def prepare_kromp(
     if not conflicts.empty:
         examples = conflicts.index[:5].tolist()
         raise ValueError(
-            "Kromp annotations contain conflicting duplicate labels; resolve explicitly. "
+            "Kromp annotations contain conflicting duplicate labels. Resolve them explicitly. "
             f"Examples: {examples}"
         )
     annotations = annotations.drop_duplicates(filename_col, keep="first").copy()
@@ -188,7 +188,7 @@ def prepare_kromp(
     cross_patient_duplicates = duplicate_patient_counts[duplicate_patient_counts > 1]
     if not cross_patient_duplicates.empty:
         raise ValueError(
-            "exact duplicate Kromp images map to different patients; resolve before splitting"
+            "exact duplicate Kromp images map to different patients. Resolve before splitting"
         )
     metadata = metadata.drop(columns="sha256")
     balance = metadata["label"].value_counts(normalize=True)
@@ -250,7 +250,7 @@ def main() -> None:
     else:
         if args.annotations is None or args.patient_map is None:
             raise SystemExit(
-                "Kromp preparation requires --annotations and an author-verified --patient-map; "
+                "Kromp preparation requires --annotations and an author-verified --patient-map. "
                 "the public release does not contain patient IDs."
             )
         prepare_kromp(

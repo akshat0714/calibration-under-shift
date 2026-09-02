@@ -1,4 +1,4 @@
-"""Resumably retrain the exact 16-member scientific matrix on one CUDA GPU."""
+"""Resume or retrain the exact 16-member matrix on one CUDA GPU."""
 
 from __future__ import annotations
 
@@ -13,13 +13,13 @@ import torch
 
 from experiments.evaluate_clean_matrix import (
     CONFIG_PATHS,
-    EXPECTED_STAGE1_MEMBERS,
-    Stage1Member,
+    EXPECTED_CHECKPOINT_MEMBERS,
+    CheckpointMember,
+    clean_acceptance_failures,
     evaluate_clean_matrix,
-    stage1_sanity_failures,
-    validate_stage1_registry,
+    validate_checkpoint_registry,
 )
-from experiments.run_stage2_matrix import require_clean_git_revision
+from experiments.evaluate_matrix import require_clean_git_revision
 from experiments.train_matrix import train_matrix
 from experiments.verify_reproduction import verify_split_integrity
 from src.utils import load_config
@@ -33,10 +33,10 @@ GROUP_ORDER = (
 )
 
 
-def _identity(row: pd.Series) -> Stage1Member:
+def _identity(row: pd.Series) -> CheckpointMember:
     fold_value: Any = row.get("fold", "")
     fold = None if pd.isna(fold_value) or str(fold_value).strip() == "" else int(float(fold_value))
-    return Stage1Member(
+    return CheckpointMember(
         str(row["dataset"]).strip().lower(),
         str(row["model"]).strip().lower().replace("-", "_"),
         int(float(row["seed"])),
@@ -86,7 +86,7 @@ def _load_partial_registry(path: Path) -> pd.DataFrame:
             "partial retrain registry contains duplicate logical members: "
             f"{sorted(member.label() for member in duplicates)}"
         )
-    unexpected = set(identities) - EXPECTED_STAGE1_MEMBERS
+    unexpected = set(identities) - EXPECTED_CHECKPOINT_MEMBERS
     if unexpected:
         raise ValueError(
             "partial retrain registry contains unexpected members: "
@@ -102,11 +102,11 @@ def full_retrain(
     download: bool = True,
     num_workers: int | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Resume missing members, then enforce the frozen Stage-1 clean sanity gates."""
+    """Resume missing members, then enforce the clean-test acceptance criteria."""
 
     root = root.resolve()
     if not torch.cuda.is_available():
-        raise RuntimeError("--full-retrain requires a CUDA GPU; CPU/MPS training is refused")
+        raise RuntimeError("--full-retrain requires a CUDA GPU. CPU/MPS training is refused")
     require_clean_git_revision(root)
     if download:
         subprocess.run(["bash", "scripts/download_data.sh", "smids"], cwd=root, check=True)
@@ -126,7 +126,7 @@ def full_retrain(
             config["evaluation"]["num_workers"] = num_workers
         members = sorted(
             member
-            for member in EXPECTED_STAGE1_MEMBERS
+            for member in EXPECTED_CHECKPOINT_MEMBERS
             if (member.dataset, member.model) == identity
         )
         for member in members:
@@ -152,7 +152,7 @@ def full_retrain(
             _atomic_registry(frame, registry)
             by_member = {_identity(row): index for index, row in frame.iterrows()}
 
-    exact = validate_stage1_registry(frame).drop(columns="_member")
+    exact = validate_checkpoint_registry(frame).drop(columns="_member")
     _atomic_registry(exact, registry)
     clean_path = registry.with_name(f"{registry.stem}-clean-metrics.csv")
     summary_path = registry.with_name(f"{registry.stem}-clean-summary.csv")
@@ -164,9 +164,9 @@ def full_retrain(
         require_cuda=True,
         cache_dir=root / "results/cache",
     )
-    failures = stage1_sanity_failures(clean, summary)
+    failures = clean_acceptance_failures(clean, summary)
     if failures:
-        raise RuntimeError("Stage-1 sanity checks failed:\n- " + "\n- ".join(failures))
+        raise RuntimeError("Clean-test acceptance criteria failed.\n- " + "\n- ".join(failures))
     return exact, clean, summary
 
 

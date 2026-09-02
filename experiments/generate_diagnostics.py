@@ -36,7 +36,7 @@ def generate_diagnostics(
     """Generate diagnostic figures using only saved checkpoint predictions.
 
     Temperature is fit once on the clean calibration role. Every plotted test
-    condition reuses that frozen scaler; no shifted or test observation is fit.
+    condition reuses that frozen scaler. No shifted or test observation is fitted.
     """
 
     if not severities or severities[0] != 0 or any(level not in range(6) for level in severities):

@@ -89,7 +89,7 @@ def test_metric_figures_and_hierarchical_summary(tidy_metrics, tmp_path):
     severity_one = summary.loc[
         (summary["method"] == "raw_softmax") & (summary["severity"] == 1)
     ].iloc[0]
-    # Each seed first averages defocus and JPEG; prior_shift is not a device corruption.
+    # Each seed first averages defocus and JPEG. prior_shift is not a device corruption.
     expected = np.mean([np.mean([0.875, 0.865]), np.mean([0.865, 0.855])])
     assert severity_one["mean"] == pytest.approx(expected)
     assert severity_one["n_replicates"] == 2

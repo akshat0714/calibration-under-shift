@@ -1,10 +1,14 @@
-# Engineering and research contract
+# Contributing
 
-1. Every experiment is driven by a versioned YAML file in `configs/`; experimental constants do not live only in Python source.
-2. Every run records its resolved configuration, random seed, environment metadata, and Git revision under `results/runs/<run_id>/`.
-3. Dataset splits are generated once with an explicit seed and saved as CSV manifests. Kromp may run only with an author-verified patient map and a patient-grouped split; it remains blocked otherwise. Calibration data never overlaps train, validation, or test data.
-4. Models train only on clean images. Device corruptions are deterministic, seeded, and applied only by evaluation data loaders.
-5. Temperature/vector scaling and conformal thresholds are fit only on rows whose manifest split is `calibration`; the implementation rejects any other split.
-6. Report uncertainty across seeds or folds, keep negative and ambiguous results, and make no clinical claims from public proxy data or simulated corruptions.
-7. Raw data, checkpoints, secrets, and machine-specific absolute paths are never committed.
-8. Any corruption-algorithm change must bump `CORRUPTION_PROTOCOL_VERSION`; any numeric ladder change is captured automatically by the registry digest, which invalidates stale inference caches. Regenerate the fixed corruption grid before evaluating checkpoints so its visual record and provenance match the active protocol.
+I use the following rules to keep experiments reproducible.
+
+1. Store experiment settings in versioned YAML files under `configs/`.
+2. Record the resolved configuration, random seed, environment, and Git revision for every run.
+3. Save dataset splits as CSV manifests with separate train, validation, calibration, and test roles.
+4. Keep Kromp modeling disabled until an author-verified patient map supports a patient-grouped split.
+5. Train models only on clean images and apply corruptions only during evaluation.
+6. Fit temperature scaling, vector scaling, and conformal thresholds only on calibration rows.
+7. Report results across seeds or folds and retain negative or ambiguous findings.
+8. Do not make clinical claims from public proxy data or simulated corruptions.
+9. Do not commit raw data, model checkpoints, secrets, or machine-specific absolute paths.
+10. Update `CORRUPTION_PROTOCOL_VERSION` after any corruption algorithm change and regenerate the fixed corruption example before evaluation.

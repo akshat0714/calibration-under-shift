@@ -269,7 +269,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--smoke",
         action="store_true",
-        help="one epoch per stage with random initialization; for pipeline verification only",
+        help="one epoch per stage with random initialization for pipeline verification only",
     )
     return parser.parse_args()
 

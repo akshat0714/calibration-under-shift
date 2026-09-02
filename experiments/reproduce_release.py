@@ -19,10 +19,10 @@ import pandas as pd
 import torch
 import yaml
 
+from experiments.analysis_artifacts import generate_analysis_artifacts
 from experiments.analyze import threshold_analysis, validate_complete_grid, write_summary
-from experiments.checkpoint3 import generate_checkpoint3_artifacts
+from experiments.evaluate_matrix import require_clean_git_revision, run_evaluation_matrix
 from experiments.generate_final_figures import generate_final_figures
-from experiments.run_stage2_matrix import require_clean_git_revision, run_stage2_matrix
 from experiments.verify_reproduction import verify_reproduction, verify_split_integrity
 from scripts.generate_corruption_grid import generate_corruption_grid
 from scripts.release_checkpoints import REGISTRY, prepare_release_matrix
@@ -58,7 +58,7 @@ def _resolved_accelerator(requested: str, *, allow_cpu: bool) -> str:
     device = resolve_device(requested)
     if device.type == "cpu" and not allow_cpu:
         raise ReleaseReproductionError(
-            "release evaluation requires CUDA or Apple MPS; refusing silent CPU execution. "
+            "release evaluation requires CUDA or Apple MPS. CPU execution is refused. "
             "Set CALIBRATION_ALLOW_CPU=1 only for an explicitly accepted slow diagnostic run."
         )
     return str(device)
@@ -118,7 +118,7 @@ def reproduce_release(
     download: bool = True,
     python: str = sys.executable,
 ) -> dict[str, Any]:
-    """Execute Stages 2–5 from the pinned release and verify the frozen result."""
+    """Evaluate the pinned checkpoint release and verify the frozen result."""
 
     root = (root or Path.cwd()).resolve()
     if not (root / ".git").exists():
@@ -150,11 +150,11 @@ def reproduce_release(
             raise ReleaseReproductionError("pinned release did not provide the 16-member matrix")
         attribution_checkpoint = _select_attribution_checkpoint(root)
 
-    with _timed(timings, "stage2_seconds"):
-        run_stage2_matrix(
+    with _timed(timings, "evaluation_seconds"):
+        run_evaluation_matrix(
             registry_path=REGISTRY,
             output=relative / "metrics.csv",
-            parts_dir=relative / "stage2_parts",
+            parts_dir=relative / "evaluation_parts",
             details_dir=relative / "evaluation_details",
             device=resolved_device,
             num_workers=num_workers,
@@ -162,7 +162,7 @@ def reproduce_release(
             python=python,
         )
 
-    with _timed(timings, "stage3_seconds"):
+    with _timed(timings, "analysis_seconds"):
         metrics = pd.read_csv(root / relative / "metrics.csv", low_memory=False)
         with (root / PROTOCOL).open(encoding="utf-8") as handle:
             protocol = yaml.safe_load(handle)
@@ -171,11 +171,11 @@ def reproduce_release(
         thresholds_path = root / relative / "thresholds.csv"
         thresholds.to_csv(thresholds_path, index=False)
         write_summary(thresholds, root / relative / "thresholds.md")
-        generate_checkpoint3_artifacts(
+        generate_analysis_artifacts(
             relative / "metrics.csv",
             relative / "thresholds.csv",
             PROTOCOL,
-            relative / "checkpoint3",
+            relative / "analysis",
             None,
         )
 
@@ -186,7 +186,7 @@ def reproduce_release(
             relative / "figures/corruption_grid.json",
         )
 
-    with _timed(timings, "stage4_attribution_seconds"):
+    with _timed(timings, "attribution_seconds"):
         _run(
             [
                 python,

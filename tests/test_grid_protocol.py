@@ -115,5 +115,5 @@ def test_checkpoint_matrix_requires_configured_seed_fold_product():
     }
     complete = [_fake(fold, seed) for seed in (11, 13) for fold in (0, 1)]
     validate_checkpoint_matrix(complete, config)
-    with pytest.raises(ValueError, match="missing"):
+    with pytest.raises(ValueError, match="Missing"):
         validate_checkpoint_matrix(complete[:-1], config)

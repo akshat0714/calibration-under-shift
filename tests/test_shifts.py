@@ -211,9 +211,9 @@ def test_registered_ladders_have_five_levels():
 
 
 def test_unknown_corruption_has_actionable_error(textured_image):
-    with pytest.raises(ValueError, match="choose one of"):
+    with pytest.raises(ValueError, match="Choose one of"):
         corrupt(textured_image, "lens_flare", 2, seed=0)
-    with pytest.raises(ValueError, match="choose one of"):
+    with pytest.raises(ValueError, match="Choose one of"):
         corrupt(textured_image, "lens_flare", 0, seed=0)
     with pytest.raises(ValueError, match="integer"):
         corrupt(textured_image, "jpeg", 1.0, seed=0)

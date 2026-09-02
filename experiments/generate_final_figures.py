@@ -1,16 +1,16 @@
-"""Generate the final, provenance-traced Stage-5 figure suite.
+"""Generate the final provenance-traced figure suite.
 
-F1, F4, and F5 are computed directly from ``results/metrics.csv``.  F2 and
+F1, F4, and F5 are computed directly from ``results/metrics.csv``. F2 and
 F3 require bin- and curve-level geometry that is not reconstructible from the
-scalar tidy rows, so they consume the paired, frozen Stage-2 detail JSONs.  The
+scalar tidy rows, so they consume the paired saved detail JSONs. The
 generator verifies every detail-level ECE, AURC, and risk-at-80 scalar against
 its matching ``metrics.csv`` row before plotting and writes the plotted data
-plus source hashes to ``results/figure_data``.  F7 combines the validated
-Stage-4 attribution summary with raw accuracy from the exact matching
+plus source hashes to ``results/figure_data``. F7 combines the validated
+attribution summary with raw accuracy from the exact matching
 checkpoint and registers the hashed qualitative attribution grid.
 
 All per-severity summaries weight device corruptions equally within each
-seed/fold replicate before summarizing across replicates.  Reliability-bin
+seed/fold replicate before summarizing across replicates. Reliability-bin
 geometry is explicitly pooled by bin count and is labeled as such.
 """
 
@@ -33,7 +33,7 @@ import yaml
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
-from experiments.checkpoint3 import validate_checkpoint3_inputs
+from experiments.analysis_artifacts import validate_analysis_inputs
 from src.viz.figures import DEFAULT_DPI
 
 DEVICE_CORRUPTIONS: tuple[str, ...] = (
@@ -544,9 +544,9 @@ def plot_lockstep(
         fig.text(
             0.5,
             0.010,
-            "X marks the first observed crossing. No shading is used; a missing X means the "
-            "signal never crossed. Values are means after equal corruption weighting within "
-            "each seed/fold.",
+            "X marks the first observed crossing. The plot has no shading, and a missing X "
+            "indicates that the signal never crossed. Values are means after equal corruption "
+            "weighting within each seed/fold.",
             ha="center",
             va="bottom",
             fontsize=7.7,
@@ -655,7 +655,7 @@ def extract_reliability_data(
     details: Sequence[tuple[Path, Mapping[str, Any]]],
     metrics: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Pool Stage-2 reliability bins after scalar-ECE cross-checks."""
+    """Pool saved reliability bins after scalar-ECE cross-checks."""
 
     lookup = _metric_index(metrics)
     contributions: list[dict[str, Any]] = []
@@ -710,7 +710,7 @@ def extract_reliability_data(
         dataset, model, severity, method, bin_index = key
         bounds = group[["lower", "upper"]].drop_duplicates()
         if len(bounds) != 1:
-            raise ValueError("reliability-bin edges differ across Stage-2 details")
+            raise ValueError("reliability-bin edges differ across evaluation details")
         count = int(group["count"].sum())
         populated = group.loc[group["count"] > 0].copy()
         if count:
@@ -820,9 +820,9 @@ def plot_reliability_panels(data: pd.DataFrame, output_path: Path) -> Path:
         fig.text(
             0.5,
             0.010,
-            "Curve geometry pools the frozen Stage-2 reliability-bin counts; displayed mean "
-            "ECE values come from metrics.csv after equal corruption weighting within each "
-            "seed/fold. Temperature scaling was fit on clean calibration data only.",
+            "Reliability curves pool bin counts from the paired saved evaluation-detail JSONs. "
+            "Mean ECE values come from metrics.csv after equal corruption weighting within each "
+            "seed/fold. Temperature scaling was fitted on clean calibration data only.",
             ha="center",
             va="bottom",
             fontsize=7.5,
@@ -973,9 +973,10 @@ def plot_risk_coverage_panels(data: pd.DataFrame, output_path: Path) -> Path:
         fig.text(
             0.5,
             0.012,
-            "Raw-softmax curves are linearly evaluated on a common coverage grid, averaged "
-            "equally across corruptions within each seed/fold, then across replicates. The "
-            "dotted line marks 80% coverage.",
+            "Risk-coverage geometry comes from the paired saved evaluation-detail JSONs. AURC "
+            "and risk-at-80 endpoints are cross-checked against metrics.csv.\nCurves use a common "
+            "coverage grid and equal corruption weighting within each seed/fold. The dotted line "
+            "marks 80% coverage.",
             ha="center",
             fontsize=7.6,
             color="#444444",
@@ -1071,9 +1072,9 @@ def plot_failure_auroc_panels(data: pd.DataFrame, output_path: Path) -> Path:
         fig.text(
             0.5,
             0.012,
-            "AUROC asks whether each score ranks incorrect above correct predictions; it is "
-            "not the frozen aggregate early-warning threshold. Means use equal corruption "
-            "weighting within each seed/fold.",
+            "Failure-detection AUROC measures whether each score ranks incorrect predictions "
+            "above correct predictions. It is separate from the prespecified aggregate threshold "
+            "analysis. Means use equal corruption weighting within each seed/fold.",
             ha="center",
             fontsize=7.6,
             color="#444444",
@@ -1174,8 +1175,8 @@ def plot_conformal_panels(data: pd.DataFrame, output_path: Path) -> Path:
         fig.text(
             0.5,
             0.012,
-            "APS thresholds were fit once on the clean calibration split. Means use equal "
-            "corruption weighting within each seed/fold; the five-member ensemble exists only "
+            "APS thresholds were fitted once on the clean calibration split. Means use equal "
+            "corruption weighting within each seed/fold. The five-member ensemble exists only "
             "for SMIDS ResNet50.",
             ha="center",
             fontsize=7.6,
@@ -1278,7 +1279,7 @@ def build_attribution_accuracy_data(
     attribution_dir: Path,
     repo_root: Path,
 ) -> tuple[pd.DataFrame, dict[str, Any], Path]:
-    """Validate Stage-4 artifacts and pair stability with matching checkpoint accuracy."""
+    """Validate attribution artifacts and pair stability with checkpoint accuracy."""
 
     root = repo_root.resolve()
     directory = attribution_dir.resolve()
@@ -1297,13 +1298,13 @@ def build_attribution_accuracy_data(
         provenance_path,
     ):
         if not path.is_file():
-            raise FileNotFoundError(f"required Stage-4 attribution artifact is missing: {path}")
+            raise FileNotFoundError(f"required attribution artifact is missing at {path}")
     with provenance_path.open(encoding="utf-8") as handle:
         provenance = json.load(handle)
     evaluation_revision = _require_committed_revision(
         provenance.get("evaluation_git_revision"),
         root,
-        label="Stage-4 evaluation revision",
+        label="attribution evaluation revision",
     )
     hashed_outputs = {
         path.name: _validate_hashed_output(provenance, path, root)
@@ -1389,7 +1390,7 @@ def build_attribution_accuracy_data(
 
     registry = provenance.get("registry")
     if not isinstance(registry, Mapping):
-        raise ValueError("attribution provenance is missing the pinned Stage-1 registry")
+        raise ValueError("attribution provenance is missing the pinned checkpoint registry")
     registry_path = _resolve_repo_path(
         registry.get("path"), root, label="attribution checkpoint registry"
     )
@@ -1398,7 +1399,7 @@ def build_attribution_accuracy_data(
     training_revision = _require_committed_revision(
         registry.get("release_training_git_revision"),
         root,
-        label="Stage-1 training revision",
+        label="checkpoint training revision",
     )
     registry_row = registry.get("row", {})
     expected_registry = {
@@ -1520,6 +1521,8 @@ def build_attribution_accuracy_data(
 
 def plot_attribution_accuracy(data: pd.DataFrame, output_path: Path) -> Path:
     identity = data.iloc[0]
+    dataset = str(identity["dataset"])
+    model = str(identity["model"])
     corruption = str(identity["corruption"])
     with plt.rc_context(_STYLE):
         fig, axes = plt.subplots(3, 1, figsize=(8.6, 9.0), sharex=True)
@@ -1579,7 +1582,7 @@ def plot_attribution_accuracy(data: pd.DataFrame, output_path: Path) -> Path:
         axes[2].set_xlabel("Corruption severity")
         fig.suptitle(
             "Attribution stability alongside single-model accuracy · secondary/exploratory\n"
-            f"{str(identity['dataset']).upper()} · {identity['model']} · "
+            f"{_GROUP_LABELS[(dataset, model)]} · "
             f"{corruption.replace('_', ' ')}",
             fontsize=13,
             fontweight="bold",
@@ -1589,9 +1592,9 @@ def plot_attribution_accuracy(data: pd.DataFrame, output_path: Path) -> Path:
         fig.text(
             0.5,
             0.012,
-            "Attribution lines show mean ± 1 SD across the fixed test images for the same "
-            "released checkpoint; accuracy is the exact matching metrics.csv row. This "
-            "analysis is not part of the frozen early-warning decision.",
+            "Attribution lines show mean ± 1 SD across the fixed test images for the released "
+            "checkpoint. The accuracy curve uses the matching metrics.csv rows. This analysis "
+            "is not part of the prespecified threshold decision.",
             ha="center",
             fontsize=7.6,
             color="#444444",
@@ -1625,7 +1628,7 @@ def _manifest(
     )
     normalized_details: list[dict[str, str]] = []
     for entry in detail_provenance:
-        path = _resolve_repo_path(entry["path"], root, label="Stage-2 detail source")
+        path = _resolve_repo_path(entry["path"], root, label="evaluation detail source")
         normalized = dict(entry)
         normalized["path"] = path.relative_to(root).as_posix()
         normalized_details.append(normalized)
@@ -1653,12 +1656,12 @@ def _manifest(
             "attribution": dict(attribution_provenance),
         },
         "geometry_note": (
-            "F2 reliability bins and F3 full risk-coverage curves come from the paired frozen "
-            "Stage-2 detail JSONs because scalar metrics.csv rows cannot reconstruct them. "
+            "F2 reliability bins and F3 full risk-coverage curves come from the paired saved "
+            "evaluation detail JSONs because scalar metrics.csv rows cannot reconstruct them. "
             "Generation fails unless each detail ECE, AURC, and risk-at-80 scalar agrees with "
             "its matching metrics.csv row. All aggregate claims and displayed summary scalars "
             "come from metrics.csv. F7 recomputes the attribution summary from its per-image "
-            "tidy source, validates the Stage-4 hashes and checkpoint identity, and uses the "
+            "tidy source, validates the attribution hashes and checkpoint identity, and uses the "
             "exact matching raw-accuracy rows from metrics.csv."
         ),
         "plotted_data": {
@@ -1696,13 +1699,13 @@ def generate_final_figures(
     raw_thresholds = pd.read_csv(thresholds_source)
     with protocol_source.open(encoding="utf-8") as handle:
         protocol = yaml.safe_load(handle)
-    metrics, thresholds = validate_checkpoint3_inputs(raw_metrics, raw_thresholds, protocol)
+    metrics, thresholds = validate_analysis_inputs(raw_metrics, raw_thresholds, protocol)
     metric_revisions = sorted(
         metrics["evaluation_git_revision"].dropna().astype(str).unique().tolist()
     )
     if len(metric_revisions) != 1:
         raise ValueError("metrics.csv must contain exactly one evaluation git revision")
-    _require_committed_revision(metric_revisions[0], repo_root, label="Stage-2 evaluation revision")
+    _require_committed_revision(metric_revisions[0], repo_root, label="evaluation revision")
 
     lockstep = build_lockstep_data(metrics, thresholds, protocol)
     per_corruption = pd.concat(
@@ -1765,7 +1768,7 @@ def generate_final_figures(
         )
     corruption_grid = figures / "corruption_grid.png"
     if not corruption_grid.is_file():
-        raise FileNotFoundError("approved Stage-0 corruption grid is missing")
+        raise FileNotFoundError("registered corruption grid is missing")
     figure_outputs["f6_corruption_grid"] = corruption_grid
 
     manifest_path = data / "final_figure_manifest.json"

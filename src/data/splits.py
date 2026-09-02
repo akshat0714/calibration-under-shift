@@ -57,8 +57,8 @@ def grouped_stratified_manifest(
 ) -> pd.DataFrame:
     """Create patient-disjoint train/val/calibration/test rows.
 
-    GroupShuffleSplit cannot natively stratify heterogeneous patient groups. We
-    therefore sample many seeded group-only candidates at each stage and retain
+    GroupShuffleSplit cannot natively stratify heterogeneous patient groups. The
+    implementation samples many seeded group-only candidates at each step and retains
     the candidate with the closest class and size distribution.
     """
 
@@ -160,7 +160,7 @@ def cross_validation_manifest(
     """Create stratified CV folds with disjoint train/val/calibration/test roles.
 
     For each outer fold, the held-out fold is test. A second stratified split of
-    the remaining rows creates validation and calibration subsets; neither is
+    the remaining rows creates validation and calibration subsets. Neither is
     reused for model fitting.
     """
 

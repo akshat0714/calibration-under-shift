@@ -72,11 +72,11 @@ def _gaussian_noise(array: np.ndarray, sigma: float, rng: np.random.Generator) -
 
 def _shot_noise(array: np.ndarray, photons: float, rng: np.random.Generator) -> np.ndarray:
     normalized = array.astype(np.float32) / 255.0
-    # This is a post-demosaic proxy: sample signal-dependent Poisson noise from
-    # luminance, then apply the same luminance residual to all RGB channels.  It
-    # avoids the rainbow speckle produced by independently sampling each channel
-    # while preserving chromatic structure.  The Poisson draw is unbiased before
-    # clipping; clipping at the public image boundary can shift the final mean.
+    # This post-demosaic proxy samples signal-dependent Poisson noise from
+    # luminance and applies the same luminance residual to all RGB channels. It
+    # avoids the rainbow speckle from independently sampling each channel while
+    # preserving chromatic structure. The Poisson draw is unbiased before clipping.
+    # Clipping at the public image boundary can shift the final mean.
     luminance_weights = np.asarray([0.2126, 0.7152, 0.0722], dtype=np.float32)
     luminance = normalized @ luminance_weights
     noisy_luminance = rng.poisson(luminance * photons).astype(np.float32) / photons
@@ -103,7 +103,7 @@ def _illumination(
     array: np.ndarray, parameter: tuple[float, float], rng: np.random.Generator
 ) -> np.ndarray:
     base_gamma, gain_delta = parameter
-    # A seed fixes the direction of gamma and chromatic bias; only magnitude changes
+    # A seed fixes the direction of gamma and chromatic bias. Only magnitude changes
     # across severity. This makes paired severity comparisons interpretable.
     bright_branch = bool(rng.integers(0, 2))
     gamma = (1.0 / base_gamma) if bright_branch else base_gamma
@@ -152,7 +152,7 @@ def corrupt(
     ``severity=0`` is the clean identity condition. For severities 1--5, the same
     seed makes each condition reproducible and fixes nuisance choices such as the
     motion angle and illumination direction. Test images stay paired across the
-    ladder; Poisson draws are deterministic per condition but not coupled across
+    ladder. Poisson draws are deterministic per condition but not coupled across
     different count scales.
     """
 

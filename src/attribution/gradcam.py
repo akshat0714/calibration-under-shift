@@ -152,7 +152,7 @@ class GradCAM:
         """Return normalized heatmaps, logits, selected classes, and confidence.
 
         ``targets=None`` explains each sample's predicted class.  A scalar target
-        applies to the whole batch; otherwise provide one class index per sample.
+        applies to the whole batch. Otherwise provide one class index per sample.
         Heatmaps have shape ``(batch, height, width)`` and values in ``[0, 1]``.
         """
 
@@ -190,7 +190,7 @@ class GradCAM:
                     raise ValueError("model output batch size does not match inputs")
                 if len(captured) != 1:
                     raise RuntimeError(
-                        "target layer must run exactly once per model forward; "
+                        "target layer must run exactly once per model forward. "
                         f"observed {len(captured)} calls"
                     )
                 activations = captured[0]

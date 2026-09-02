@@ -9,16 +9,16 @@ import pytest
 import yaml
 from PIL import Image
 
-from experiments.analyze import threshold_analysis
-from experiments.checkpoint3 import (
+from experiments.analysis_artifacts import (
     _divergence_interval,
     _ece_transfer_table,
     _status,
     build_main_table,
     finding_text,
-    generate_checkpoint3_artifacts,
-    validate_checkpoint3_inputs,
+    generate_analysis_artifacts,
+    validate_analysis_inputs,
 )
+from experiments.analyze import threshold_analysis
 
 GROUPS = (
     ("smids", "resnet50", tuple(range(2025, 2030)), ("",)),
@@ -218,12 +218,12 @@ def _write_inputs(tmp_path: Path) -> tuple[Path, Path, Path]:
     return metrics_path, thresholds_path, protocol_path
 
 
-def test_checkpoint3_generates_strict_primary_secondary_and_figure(tmp_path):
+def test_analysis_artifacts_generate_strict_primary_secondary_and_figure(tmp_path):
     metrics_path, thresholds_path, protocol_path = _write_inputs(tmp_path)
-    output_dir = tmp_path / "checkpoint3"
+    output_dir = tmp_path / "analysis"
     figure = tmp_path / "figures" / "headline.png"
 
-    outputs = generate_checkpoint3_artifacts(
+    outputs = generate_analysis_artifacts(
         metrics_path,
         thresholds_path,
         protocol_path,
@@ -269,7 +269,7 @@ def test_checkpoint3_generates_strict_primary_secondary_and_figure(tmp_path):
     assert np.allclose(ensemble_selective["gain_vs_unselective"], 0.02)
     assert np.allclose(ensemble_selective["difference_from_clean"], -0.05)
 
-    with Image.open(outputs["headline_figure"]) as rendered:
+    with Image.open(outputs["analysis_overview_figure"]) as rendered:
         assert rendered.format == "PNG"
         assert rendered.width > 1_000
         assert rendered.height > 1_000
@@ -281,18 +281,18 @@ def test_checkpoint3_generates_strict_primary_secondary_and_figure(tmp_path):
     assert "sha256" in manifest
 
 
-def test_checkpoint3_rejects_threshold_file_that_disagrees_with_recomputation(tmp_path):
+def test_analysis_artifacts_reject_threshold_file_that_disagrees_with_recomputation(tmp_path):
     metrics_path, thresholds_path, protocol_path = _write_inputs(tmp_path)
     thresholds = pd.read_csv(thresholds_path)
     thresholds.loc[0, "signal_crossing_severity"] = 5
     thresholds.to_csv(thresholds_path, index=False)
 
     with pytest.raises(ValueError, match="disagrees with frozen recomputation"):
-        generate_checkpoint3_artifacts(
+        generate_analysis_artifacts(
             metrics_path,
             thresholds_path,
             protocol_path,
-            tmp_path / "checkpoint3",
+            tmp_path / "analysis",
             tmp_path / "headline.png",
         )
 
@@ -319,7 +319,7 @@ def test_missing_accuracy_crossing_has_distinct_status_not_negative():
     metrics.loc[no_accuracy_drop, "value"] = 0.88
     thresholds = threshold_analysis(metrics, protocol)
 
-    normalized, verified = validate_checkpoint3_inputs(metrics, thresholds, protocol)
+    normalized, verified = validate_analysis_inputs(metrics, thresholds, protocol)
     main = build_main_table(normalized, verified)
     xception = main.loc[(main["dataset"] == "smids") & (main["model"] == "xception")]
 
@@ -341,7 +341,7 @@ def test_crossing_statuses_distinguish_every_missing_case():
     assert _status(np.nan, np.nan) == "neither_crossed"
 
 
-def test_checkpoint3_rejects_replaced_seed_even_when_replicate_count_matches(tmp_path):
+def test_analysis_artifacts_reject_replaced_seed_even_when_replicate_count_matches(tmp_path):
     metrics = _metrics()
     protocol = _protocol()
     thresholds = threshold_analysis(metrics, protocol)
@@ -349,5 +349,5 @@ def test_checkpoint3_rejects_replaced_seed_even_when_replicate_count_matches(tmp
     mask = (replaced["dataset"] == "smids") & (replaced["model"] == "xception")
     replaced.loc[mask & (replaced["seed"].astype(str) == "2027"), "seed"] = "9999"
 
-    with pytest.raises(ValueError, match="seed/fold identities"):
-        validate_checkpoint3_inputs(replaced, thresholds, protocol)
+    with pytest.raises(ValueError, match="seed and fold identities"):
+        validate_analysis_inputs(replaced, thresholds, protocol)

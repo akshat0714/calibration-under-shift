@@ -117,7 +117,7 @@ def test_lockstep_normalization_preserves_strict_frozen_crossings(tmp_path):
     accuracy = group.loc[group["metric"] == "accuracy"].set_index("severity")
     assert accuracy.loc[0, "normalized_mean"] == pytest.approx(0.0)
     # Equality to the frozen cutoff normalizes to one but does not cross the
-    # strict primary comparator; the first lower accuracy is severity two.
+    # Strict primary comparator. The first lower accuracy is severity two.
     assert accuracy.loc[1, "normalized_mean"] == pytest.approx(1.0)
     assert accuracy["crossing_severity"].iloc[0] == pytest.approx(2.0)
 
