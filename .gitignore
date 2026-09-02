@@ -23,6 +23,7 @@ results/checkpoint_registry*
 results/stage1_*
 results/demo_*
 results/demo_figures/
+results/evaluation_details/*
 results/stage2_parts/
 results/eval_*
 results/pilot_*

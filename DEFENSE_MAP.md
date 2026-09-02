@@ -8,7 +8,7 @@ Use this as an index, not a script. For every row, be able to open the file, poi
 
 | File | Decision to defend in one line |
 |---|---|
-| `run.sh` | One guarded entry point separates setup, data preparation, training, released-checkpoint evaluation, analysis, figures, and the synthetic engineering path so a reviewer cannot silently substitute demo output for scientific results. |
+| `run.sh` | The no-argument `--eval-only` route performs the complete isolated released-checkpoint reproduction; config-specific and demo routes remain explicit so fixtures cannot replace scientific results. |
 | `requirements.txt` | Exact runtime pins make the released-checkpoint path reproducible from the declared Python environment rather than depending on a developer machine. |
 | `pyproject.toml` | Pytest and Ruff configuration is versioned with the code so local and CI quality gates use the same rules. |
 | `.github/workflows/ci.yml` | CI exercises deterministic unit/smoke behavior without downloading private or large raw data; real-result reproduction is a separate released-checkpoint drill. |
@@ -29,8 +29,8 @@ Use this as an index, not a script. For every row, be able to open the file, poi
 
 | File | Decision to defend in one line |
 |---|---|
-| `scripts/download_data.sh` | Archives are downloaded from publisher sources and checksum-verified before extraction; raw data are never redistributed by this repository. |
-| `scripts/release_checkpoints.py` | The GitHub Release URL, archive size/hash, internal manifest, safe extraction, and registry selection are pinned so `--eval-only` cannot silently evaluate substituted weights. |
+| `scripts/download_data.sh` | Archives resume into `.part` files, are atomically renamed, checksum-verified, and extracted with an explicit RAR-tool preflight; raw data are never redistributed. |
+| `scripts/release_checkpoints.py` | The release URL, archive size/hash, internal manifest, safe extraction, and exact ordered 16-member selection are pinned and verified once per full run. |
 | `scripts/make_demo_data.py` | Synthetic images are deterministic and exist only to exercise CI/smoke plumbing without downloading a scientific dataset. |
 | `src/data/prepare.py` | Preparation decodes by content, maps labels explicitly, writes deterministic metadata/splits, and fails Kromp on conflicting labels or absent patient linkage instead of inventing a defensible-looking split. |
 | `src/data/audit.py` | Audits count classes, dimensions, decode failures, and byte duplicates before modeling and emit both machine-readable evidence and visual samples. |
@@ -39,7 +39,7 @@ Use this as an index, not a script. For every row, be able to open the file, poi
 | `src/data/datasets.py` | Corruptions are constructor-level evaluation behavior and are refused for the training role, making clean-only training an enforceable invariant. |
 | `src/data/transforms.py` | Model-specific image size/interpolation is resolved from config, while ImageNet normalization remains consistent with the pretrained weights. |
 | `src/shifts/severity.py` | One versioned table defines all seven ordinal ladders and a protocol digest so cached logits and reported physics cannot drift independently. |
-| `src/shifts/corruptions.py` | Deterministic corruptions operate at decoded native geometry; Gaussian noise preserves ImageNet-C independent-channel comparability, shot noise uses a shared luminance-derived residual, and illumination follows the fixed green/teal direction. |
+| `src/shifts/corruptions.py` | Deterministic corruptions operate at decoded native geometry; Gaussian noise preserves ImageNet-C independent-channel comparability, shot noise uses a shared luminance-derived residual, and illumination fixes a per-image gamma/white-balance direction across severity. |
 | `scripts/generate_corruption_grid.py` | The displayed ladder uses a fixed held-out manifest row and seed, with a sidecar recording the exact source and protocol rather than a hand-picked undocumented image. |
 | `data/metadata/smids.csv` | The checksum-audited 3,000-image inventory is the source of truth for SMIDS paths and labels. |
 | `data/metadata/hushem.csv` | The 216-image inventory preserves published classes and observed dimension anomalies rather than silently normalizing the audit record. |
@@ -54,6 +54,7 @@ Use this as an index, not a script. For every row, be able to open the file, poi
 | `src/models/build.py` | A common feature/logit interface wraps ResNet50, Xception, and MobileNetV3-Large; explicit pre-head dropout supports MC inference and penultimate features support OOD/attribution analyses. |
 | `src/train.py` | Training is clean-only, uses frozen-head then lower-rate full fine-tuning, selects checkpoints by validation macro-F1, and records resolved config, seed, Git revision, curves, and environment. |
 | `experiments/train_matrix.py` | The matrix enumerates only the approved seed/fold members and appends an identity-rich registry so interrupted runs can resume without conflating models. |
+| `experiments/full_retrain.py` | The public full-retrain flag is CUDA-only, skips already completed logical members with existing checkpoints, atomically updates its registry after each run, and enforces the clean sanity gates at the end. |
 | `experiments/evaluate_clean_matrix.py` | The clean gate evaluates every registered member, summarizes mean ± sample SD, rejects chance-level runs, and enforces the SMIDS/HuSHeM sanity thresholds before shift analysis. |
 | `RUN_ON_GCP.md` | GPU setup, resumability, artifact packaging, and shutdown are written as an auditable operational procedure; it does not authorize CPU fallback or service-account keys. |
 
@@ -65,6 +66,8 @@ Use this as an index, not a script. For every row, be able to open the file, poi
 | `src/utils.py` | Config loading, full Git revision capture, JSON serialization, and environment metadata are centralized so every run records the same provenance semantics. |
 | `experiments/run_grid.py` | Clean calibration fits happen once per checkpoint and are frozen across clean/corrupted test cells; all methods reuse cached forward passes and write tidy rows with portable provenance. |
 | `experiments/run_stage2_matrix.py` | The canonical 16-member matrix, exactly five SMIDS ResNet50 ensemble members, expected row counts, unique tidy keys, detail files, and one Git revision are validated before `metrics.csv` is written atomically. |
+| `experiments/reproduce_release.py` | The one-command orchestrator isolates outputs under `results/reproduction`, refuses silent CPU use, excludes Kromp, regenerates Stages 2–5, and stops on the first failed gate. |
+| `experiments/verify_reproduction.py` | The final verifier compares every tidy identity/value to the committed reference, preserves the 0/10 and 6/16 null, rechecks split/calibration guards, and verifies all figure hashes and portable paths. |
 | `src/metrics/classification.py` | Accuracy is accompanied by macro-F1, class recall, and macro one-vs-rest AUROC so imbalance and class-specific failures are not hidden. |
 | `src/metrics/calibration.py` | ECE, adaptive ECE, Brier, and NLL are all reported because binned calibration estimates are not intrinsic or sufficient alone. |
 | `src/metrics/selective.py` | Risk–coverage, AURC, fixed 80%-coverage risk, and failure-detection AUROC evaluate ranking usefulness independently of mean uncertainty. |
@@ -85,7 +88,6 @@ Use this as an index, not a script. For every row, be able to open the file, poi
 | `experiments/run_attribution.py` | A fixed manifest subset and severities 0/2/4 produce confidence-labeled qualitative panels and full-test quantitative stability from real checkpoints, with run provenance. |
 | `src/viz/figures.py` | Reusable plotting primitives and the synthetic/demo figure path share a consistent accessible style without being treated as scientific output. |
 | `experiments/generate_final_figures.py` | F1–F7 are regenerated from validated real metrics, paired detail geometry, and attribution provenance; the headline uses an unshaded shared severity axis and every panel emits hashed tidy source data. |
-| `experiments/generate_final_figures.py` | The final F1–F5/appendix suite is regenerated from canonical metrics and approved analysis tables, with no demo fallback and no hand-entered result values. |
 | `experiments/generate_diagnostics.py` | Small diagnostic panels are generated from a real selected checkpoint for manual sanity checking, not promoted into the multi-seed primary result. |
 | `notebooks/01_walkthrough.ipynb` | The narrative notebook reads committed result artifacts and keeps its fixture/demo route explicitly opt-in; it does not train or silently fall back. |
 
@@ -110,7 +112,9 @@ Use this as an index, not a script. For every row, be able to open the file, poi
 | `tests/test_checkpoint3.py` | Main/secondary table derivation and honest finding text are tested so the primary null cannot be changed by prose editing. |
 | `tests/test_clean_matrix.py` | Registry shape, member completeness, clean summary statistics, chance checks, and sanity gates are tested. |
 | `tests/test_train_matrix.py` | Seed/fold enumeration and registry resume behavior prevent accidental pilot inclusion or duplicate members. |
-| `tests/test_release_checkpoints.py` | Archive hash/size, safe extraction, pinned internal manifest, and config-specific registry selection prevent checkpoint substitution or path traversal. |
+| `tests/test_release_checkpoints.py` | Archive hash/size, safe extraction, pinned manifests, exact 16-member selection, and run-script dispatch prevent checkpoint substitution, path traversal, or a partial default evaluation. |
+| `tests/test_reproduction.py` | Isolated-output reset, accelerator refusal, metric tolerance, frozen-null, figure-hash, source-guard, and demo-severity regressions protect the public one-command path. |
+| `tests/test_notebook.py` | The notebook defaults to real results, requires explicit demo opt-in plus paths, honors an isolated results root, and CI never overwrites canonical metrics. |
 | `tests/test_figures.py` | Figure generation is exercised on tidy fixture data and rejects missing required methods/metrics rather than drawing misleading empty panels. |
 | `tests/test_final_figures.py` | Final F1–F7 inputs are cross-checked against canonical metrics/detail/attribution artifacts, including hash and scalar agreement, before publication panels can be written. |
 | `tests/test_smoke_pipeline.py` | The synthetic path exercises train→evaluate→analyze→figure plumbing only; its outputs never satisfy real-grid identity checks. |
@@ -133,6 +137,7 @@ Use this as an index, not a script. For every row, be able to open the file, poi
 | `results/figures/kromp_samples.png` | The sample grid documents the audited release even though modeling is blocked; visual availability does not solve missing patient linkage. |
 | `DATASETS.md` | Primary dataset citations, checksums, licenses, and release caveats are kept next to reproduction guidance; public availability does not erase attribution duties. |
 | `DELIVERY_CHECKLIST.md` | The local checklist is a verification aid, not evidence that a gate passed; every checked item still requires command or artifact evidence. |
+| `STAGE6_VERIFICATION.md` | Cold/warm fresh-clone commands, revision, timing boundary, and exact gate outputs record what was actually reproduced without inventing a T4 runtime. |
 | `EMAIL.md` | The earlier generic email draft is non-authoritative; the final result-bearing message is `DELIVERY_EMAIL.md` and remains unsent. |
 | `REPORT.md` | The hypothesis is stated before the null result, secondary analyses are labeled, limitations remain prominent, and every number traces to canonical artifacts. |
 | `README.md` | The first screen must state the bounded null and link one-command reproduction; it must not market uncertainty as an alarm the experiment did not support. |
@@ -150,5 +155,5 @@ Use this as an index, not a script. For every row, be able to open the file, poi
 - The HuSHeM ±7.8-point fold SD is affected by 43–44-image folds: one error is about 2.3 points; it mixes model and evaluation variability.
 - SMIDS MobileNetV3-Large and ResNet50 are descriptively close on clean performance; equivalence was not tested.
 - Gaussian noise intentionally follows the ImageNet-C per-channel convention for comparability and is the least physical corruption; luminance-correlated shot noise is the more physical counterpart.
-- The illumination proxy darkens midtones and moves white balance toward green/teal under the fixed seed.
+- Illumination uses a deterministic per-image gamma/white-balance direction held across severity; only the illustrated seed-1729 grid specifically darkens toward green/teal.
 - Kromp stays blocked, pilot/demo runs stay excluded, and no result constitutes clinical validation or a deployment policy.

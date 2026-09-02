@@ -258,7 +258,7 @@ def verify_thresholds(reference_path: Path, reproduced_path: Path) -> dict[str, 
         reproduced["signal_crossing_severity"].notna()
         & reproduced["accuracy_drop_severity"].notna()
     )
-    earlier = reproduced.loc[paired, "signal_is_earlier"].fillna(False).astype(bool)
+    earlier = reproduced.loc[paired, "signal_is_earlier"].astype("boolean").fillna(False)
     signal_never = int(reproduced["signal_crossing_severity"].isna().sum())
     if int(paired.sum()) != 10 or int(earlier.sum()) != 0 or signal_never != 6:
         raise ReproductionError(

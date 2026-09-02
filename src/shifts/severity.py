@@ -42,10 +42,10 @@ PHYSICAL_MECHANISMS = {
     "defocus_blur": "lower numerical-aperture phone optics or autofocus error",
     "motion_blur": "handheld capture without a fixed microscope stage",
     "gaussian_noise": "ImageNet-C-style independent-channel additive baseline",
-    "shot_noise": "luminance-correlated photon noise after demosaicing",
+    "shot_noise": "post-demosaic proxy for luminance-correlated photon noise",
     "jpeg": "lossy smartphone image encoding and transfer",
     "resample": "lower magnification or sensor pixel density",
-    "illumination": "fixed-direction global gamma and green/teal white-balance proxy",
+    "illumination": "per-image deterministic global gamma and white-balance proxy",
 }
 
 

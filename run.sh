@@ -95,6 +95,7 @@ case "${1:---help}" in
       --checkpoint "$demo_checkpoint" \
       --output-dir results/demo_figures \
       --severities 0 1 3 \
+      --figure-severities 0 1 3 \
       --samples 4 \
       --device cpu
     echo "Synthetic demo completed. Do not report its metrics as scientific results."
