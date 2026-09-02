@@ -166,7 +166,8 @@ def full_retrain(
     )
     failures = clean_acceptance_failures(clean, summary)
     if failures:
-        raise RuntimeError("Clean-test acceptance criteria failed.\n- " + "\n- ".join(failures))
+        detail = ". ".join(failure.rstrip(".") for failure in failures)
+        raise RuntimeError(f"Clean-test acceptance criteria failed. {detail}.")
     return exact, clean, summary
 
 

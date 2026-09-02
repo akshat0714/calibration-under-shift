@@ -93,16 +93,19 @@ def save_sample_grid(
 
 
 def _markdown(report: dict[str, Any], dataset: str) -> str:
-    lines = [f"# {dataset} data audit", "", f"- Images listed: {report['images_listed']}"]
+    summary = f"The manifest lists {report['images_listed']} images."
     if "patients" in report:
-        lines.append(f"- Patients: {report['patients']}")
+        summary += f" It includes {report['patients']} patients."
+    lines = [f"# {dataset} data audit", "", summary]
     lines.extend(["", "## Class counts", "", "| Label | Count |", "|---|---:|"])
     lines.extend(f"| {label} | {count} |" for label, count in report["classes"].items())
     lines.extend(["", "## Decode checks", ""])
-    lines.append(f"- Corrupt/unreadable files: {len(report['corrupt_files'])}")
-    lines.append(f"- Exact duplicate groups: {len(report['duplicate_groups'])}")
-    lines.append(f"- Dimensions: `{report['dimensions']}`")
-    lines.append(f"- Color modes: `{report['color_modes']}`")
+    lines.append(
+        f"The audit found {len(report['corrupt_files'])} corrupt or unreadable files and "
+        f"{len(report['duplicate_groups'])} exact duplicate groups."
+    )
+    lines.append(f"Observed dimensions were `{report['dimensions']}`.")
+    lines.append(f"Observed color modes were `{report['color_modes']}`.")
     return "\n".join(lines) + "\n"
 
 

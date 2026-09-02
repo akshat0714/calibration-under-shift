@@ -100,12 +100,20 @@ My next experiment would use paired reference and low-cost device captures of th
 
 ## References
 
-1. [Thirumalaraju et al. in Fertility and Sterility](https://doi.org/10.1016/j.fertnstert.2025.08.021)
-2. [Kanakasabapathy et al. in Nature Biomedical Engineering](https://doi.org/10.1038/s41551-021-00733-w)
-3. [Ovadia et al. at NeurIPS](https://proceedings.neurips.cc/paper_files/paper/2019/hash/8558cb408c1d76621371888657d2eb1d-Abstract.html)
-4. [Hendrycks and Dietterich at ICLR](https://openreview.net/forum?id=HJz6tiCqYm)
-5. [Guo et al. at ICML](https://proceedings.mlr.press/v70/guo17a.html)
-6. [Angelopoulos and Bates](https://doi.org/10.1561/2200000101)
-7. [Takidin et al. SMIDS](https://doi.org/10.17632/6xvdhc9fyb.1)
-8. [Shaker and Monadjemi HuSHeM](https://doi.org/10.17632/tt3yj2pf38.3)
-9. [Kromp et al. blastocyst dataset](https://doi.org/10.1038/s41597-023-02182-3)
+[1] [Thirumalaraju et al. in Fertility and Sterility](https://doi.org/10.1016/j.fertnstert.2025.08.021)
+
+[2] [Kanakasabapathy et al. in Nature Biomedical Engineering](https://doi.org/10.1038/s41551-021-00733-w)
+
+[3] [Ovadia et al. at NeurIPS](https://proceedings.neurips.cc/paper_files/paper/2019/hash/8558cb408c1d76621371888657d2eb1d-Abstract.html)
+
+[4] [Hendrycks and Dietterich at ICLR](https://openreview.net/forum?id=HJz6tiCqYm)
+
+[5] [Guo et al. at ICML](https://proceedings.mlr.press/v70/guo17a.html)
+
+[6] [Angelopoulos and Bates](https://doi.org/10.1561/2200000101)
+
+[7] [Takidin et al. SMIDS](https://doi.org/10.17632/6xvdhc9fyb.1)
+
+[8] [Shaker and Monadjemi HuSHeM](https://doi.org/10.17632/tt3yj2pf38.3)
+
+[9] [Kromp et al. blastocyst dataset](https://doi.org/10.1038/s41597-023-02182-3)

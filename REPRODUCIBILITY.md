@@ -20,18 +20,8 @@ I updated that clone to revision `5089548ddc6b6d4bff2650a0abe82479752f9b9f` and 
 
 The verifier reported the following results.
 
-- 45,540 metric rows with no duplicate keys
-- 17 evaluation detail files
-- Maximum absolute metric difference of `0.0`
-- 16 threshold rows
-- 10 comparisons with both crossings
-- 0 earlier reliability crossings
-- 6 signals that never crossed
-- 49 calibration-only fit records
-- 15 figures with 51 verified hash entries
-- 3,000 unique SMIDS paths with exact train, validation, calibration, and test roles
-- 216 unique HuSHeM paths across five folds with one outer test appearance per image
-- Repository-relative artifact paths only
-- No Kromp, pilot, or synthetic-demo rows in the scientific grid
+It found 45,540 metric rows with no duplicate keys and 17 evaluation detail files. The maximum absolute metric difference was `0.0`. The threshold output had 16 rows, 10 comparisons with both crossings, 0 earlier reliability crossings, and 6 signals that never crossed.
+
+It also found 49 calibration-only fit records and 15 figures with 51 verified hash entries. It confirmed 3,000 unique SMIDS paths with exact train, validation, calibration, and test roles. It confirmed 216 unique HuSHeM paths across five folds with one outer test appearance per image. All artifact paths were repository-relative, and the scientific grid contained no Kromp, pilot, or synthetic-demo rows.
 
 I did not measure T4 runtime. I therefore make no T4 timing claim.

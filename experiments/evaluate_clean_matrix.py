@@ -309,7 +309,8 @@ def main() -> None:
     if args.enforce_clean_criteria:
         failures = clean_acceptance_failures(tidy, summary)
         if failures:
-            raise SystemExit("Clean-test acceptance criteria failed.\n- " + "\n- ".join(failures))
+            detail = ". ".join(failure.rstrip(".") for failure in failures)
+            raise SystemExit(f"Clean-test acceptance criteria failed. {detail}.")
 
 
 if __name__ == "__main__":

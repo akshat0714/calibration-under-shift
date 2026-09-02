@@ -232,7 +232,7 @@ def write_summary(thresholds: pd.DataFrame, path: Path) -> None:
     lines = [
         "# Prespecified threshold analysis",
         "",
-        "Generated from `results/metrics.csv` using `configs/analysis_protocol.yaml`.",
+        "I generated this table from `results/metrics.csv` using `configs/analysis_protocol.yaml`. "
         "Missing threshold crossings remain missing.",
         "",
     ]

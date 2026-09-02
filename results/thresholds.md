@@ -1,7 +1,6 @@
 # Prespecified threshold analysis
 
-Generated from `results/metrics.csv` using `configs/analysis_protocol.yaml`.
-Missing threshold crossings remain missing.
+I generated this table from `results/metrics.csv` using `configs/analysis_protocol.yaml`. Missing threshold crossings remain missing.
 
 | Dataset | Model | Signal | Signal severity | Accuracy severity | Gap | Earlier? |
 |---|---|---|---:|---:|---:|:---:|

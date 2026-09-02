@@ -8,11 +8,15 @@ I also found inconsistent transfer from clean-fitted temperature scaling. It red
 
 ## Key results
 
-1. I observed 0 earlier reliability crossings among 10 comparisons with both thresholds reached. Six of 16 signals never reached their thresholds.
-2. The accuracy-drop threshold occurred at severity 2 for SMIDS MobileNetV3-Large and severity 3 for SMIDS ResNet50, SMIDS Xception, and HuSHeM ResNet50.
-3. Temperature scaling changed mean severity-5 ECE by -0.023 for SMIDS ResNet50, -0.013 for MobileNetV3-Large, -0.003 for Xception, and +0.014 for HuSHeM.
-4. At 80% retention, energy selection increased retained accuracy by 3.6 to 5.2 percentage points at severities 3 and 4. Ensemble entropy increased retained accuracy by 5.2 and 5.4 points.
-5. APS coverage decreased and mean set size increased from clean data to severity 5 in all four dataset and backbone settings.
+I observed 0 earlier reliability crossings among 10 comparisons with both thresholds reached. Six of 16 signals never reached their thresholds.
+
+The accuracy-drop threshold occurred at severity 2 for SMIDS MobileNetV3-Large and severity 3 for SMIDS ResNet50, SMIDS Xception, and HuSHeM ResNet50.
+
+Temperature scaling changed mean severity-5 ECE by -0.023 for SMIDS ResNet50, -0.013 for MobileNetV3-Large, -0.003 for Xception, and +0.014 for HuSHeM.
+
+At 80% retention, energy selection increased retained accuracy by 3.6 to 5.2 percentage points at severities 3 and 4. Ensemble entropy increased retained accuracy by 5.2 and 5.4 points.
+
+APS coverage decreased and mean set size increased from clean data to severity 5 in all four dataset and backbone settings.
 
 I averaged the seven corruptions within each seed or fold before summarizing replicates, as specified in `configs/analysis_protocol.yaml`.
 
@@ -29,10 +33,13 @@ I averaged the seven corruptions within each seed or fold before summarizing rep
 
 I report these analyses separately from the primary conclusion.
 
-- I applied the same thresholds per corruption. Both thresholds were reached in 58 of 112 correlated comparisons. None showed an earlier reliability crossing. The signal did not cross in the other 54 comparisons.
-- I measured raw-softmax failure AUROC from severity 1 to severity 5. It changed from 0.817 to 0.697 for SMIDS ResNet50, 0.839 to 0.695 for Xception, 0.807 to 0.657 for MobileNetV3-Large, 0.815 to 0.704 for HuSHeM, and 0.836 to 0.732 for the ensemble.
-- I measured APS coverage and set size. Coverage changed from 0.977 to 0.865 for SMIDS ResNet50, 0.958 to 0.760 for MobileNetV3-Large, 0.987 to 0.869 for Xception, and 0.958 to 0.942 for HuSHeM. Mean set size increased by 0.148, 0.276, 0.121, and 0.655 classes, respectively.
-- I treated the real-checkpoint Grad-CAM and Grad-CAM++ analysis as exploratory.
+I applied the same thresholds per corruption. Both thresholds were reached in 58 of 112 correlated comparisons. None showed an earlier reliability crossing. The signal did not cross in the other 54 comparisons.
+
+I measured raw-softmax failure AUROC from severity 1 to severity 5. It changed from 0.817 to 0.697 for SMIDS ResNet50, 0.839 to 0.695 for Xception, 0.807 to 0.657 for MobileNetV3-Large, 0.815 to 0.704 for HuSHeM, and 0.836 to 0.732 for the ensemble.
+
+I measured APS coverage and set size. Coverage changed from 0.977 to 0.865 for SMIDS ResNet50, 0.958 to 0.760 for MobileNetV3-Large, 0.987 to 0.869 for Xception, and 0.958 to 0.942 for HuSHeM. Mean set size increased by 0.148, 0.276, 0.121, and 0.655 classes, respectively.
+
+I treated the real-checkpoint Grad-CAM and Grad-CAM++ analysis as exploratory.
 
 ## Clean test results
 
